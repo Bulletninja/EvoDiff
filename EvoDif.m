@@ -1,4 +1,5 @@
-function [mejorindividuo, nfeval] = EvoDif(fh, NP, D, F, CR, generaciones, estrategia, cotainf, cotasup)
+function [mejorindividuo, nfeval] = EvoDif(fh, NP, D, F, CR,...
+    generaciones, estrategia, cotainf, cotasup)
 %Minimización con Evolución diferencial
 %Salidas
 %--------------------
@@ -20,11 +21,13 @@ function [mejorindividuo, nfeval] = EvoDif(fh, NP, D, F, CR, generaciones, estra
 
 %-----Inicializar población------------------------------ 
 poblacion = zeros(NP, D);
+cotainf=(cotainf(:))';
+cotasup=(cotasup(:))';
 for i=1:NP
-	poblacion(i,:)=cotainf+rand(D,1).*(cotasup-cotainf);
+	poblacion(i,:)=cotainf+rand(1,D).*(cotasup-cotainf);
 end
 poblacion_vieja		= zeros(size(poblacion));
-val			= zeros(1,NP);
+val                 = zeros(1,NP);
 mejorindividuo		= zeros(1,D);
 mejorinditeracion	= zeros(1,D);
 nfeval			=0;
@@ -68,7 +71,8 @@ ind	=	zeros(4);
 
 generacion=1;
 
-while((generacion < generaciones) && (mejorval>1.e-10))
+while((generacion < generaciones) && (mejorval>1.e-5))
+%    generacion
 	poblacion_vieja = poblacion;
 	%"barajar" población
 	ind	=	randperm(4);
@@ -126,14 +130,14 @@ while((generacion < generaciones) && (mejorval>1.e-10))
 	end
 	mejorinditeracion	= mejorindividuo;
 %-----Salida---------------------------------------------
-	if (rem(generacion,5)==0)
-		fprintf(1,'Iteracion: %d, Mejor: %f, F: %f, CR %f, NP %d\n',generacion, mejorval, F, CR, NP);
-		for n=1:D
-			fprintf(1,'Mejor(%d) = %f\n', mejorindividuo(n));
-		end
-	end
+% 	if (rem(generacion,5)==0)
+% 		fprintf(1,'Iteracion: %d, Mejor: %f, F: %f, CR %f, NP %d\n',generacion, mejorval, F, CR, NP);
+% 		for n=1:D
+% 			fprintf(1,'Mejor(%d) = %f\n', mejorindividuo(n));
+% 		end
+% 	end
 %-----Plot-----------------------------------------------------------
-
+generacion=generacion+1;
 end%endwhile (generacion < generaciones)
 mejorindividuo=mejorindividuo(:);
 end
