@@ -131,8 +131,7 @@ while((generacion < generaciones) && (mejorval>1.e-5))
 %-----Salida---------------------------------------------
  	if (rem(generacion,1)==0)
  		fprintf(1,'Iteracion: %d, Mejor: %f, NP %d\n ',generacion, mejorval, NP);
-		reshape(mejorindividuo,M,N)
-		scheduleCost(reshape(mejorindividuo,M,N))
+		mejorindividuo
  		%for n=1:(M*N)
  		%	fprintf(1,'Mejor(%d) = %f\n\n', n,mejorindividuo(n));
  		%end
