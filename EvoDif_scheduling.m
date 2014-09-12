@@ -1,4 +1,4 @@
-function [mejorindividuo, nfeval] = EvoDif_scheduling(NP,J,orden,generaciones)
+function [mejorindividuo, nfeval] = EvoDif_scheduling(NP,J,CR,orden,generaciones)
 %Minimización con Evolución diferencial
 %Salidas
 %--------------------
@@ -68,25 +68,27 @@ generacion=1;
 
 while((generacion < generaciones) && (mejorval>1.e-5))
 %    generacion
-	poblacion_vieja = poblacion;
+	%poblacion_vieja = poblacion;
 	%"barajar" población
-	ind	=	randperm(4);
-	a1	=	randperm(NP);
-	rt	=	rem(rot+ind(1),NP);
-	a2	=	a1(rt+1);
+	%ind	=	randperm(4);
+%	a1	=	randperm(NP);
+%	rt	=	rem(rot+ind(1),NP);
+%	a2	=	a1(rt+1);
 % 	rt	=	rem(rot+ind(2),NP);
 % 	a3	=	a2(rt+1);
 % 	rt	=	rem(rot+ind(3),NP);
 % 	a4	=	a3(rt+1);
 % 	rt	=	rem(rot+ind(4),NP);
 % 	a5	=	a4(rt+1);
-
-	mp1	=	poblacion_vieja(:,a1);
-	mp2	=	poblacion_vieja(:,a2);
+%	mp1	=	poblacion_vieja(:,a1);
+%	mp2	=	poblacion_vieja(:,a2);
 % 	mp3	=	poblacion_vieja(:,a3);
 % 	mp4	=	poblacion_vieja(:,a4);
 % 	mp5	=	poblacion_vieja(:,a5);
-
+    for i=1:NP
+        mp1(:,i)=permutarTrabajos(J,M,N,orden);
+        mp2(:,i)=permutarTrabajos(J,M,N,orden);
+    end
 	for i=1:NP
 		mi(:,i)=mejorinditeracion;
 	end
@@ -98,7 +100,7 @@ while((generacion < generaciones) && (mejorval>1.e-5))
 %----------Mutación/Perturbación----------------
     for i=1:NP
         %offsprings
-        ui(:,i)=CruzayMutacion(mp1(:,i),mp2(:,i),M,N,NP,orden);
+        ui(:,i)=CruzayMutacion(mp1(:,i),mp2(:,i),M,N,NP,CR,orden);
     end
 % 	if	(estrategia == 1)	% DE/best/1
 % 		ui = mi+F*(mp1-mp2); 
@@ -129,10 +131,10 @@ while((generacion < generaciones) && (mejorval>1.e-5))
 	end
 	mejorinditeracion	= mejorindividuo;
 %-----Salida---------------------------------------------
- 	if (rem(generacion,1)==0)
+ 	if (rem(generacion,20)==0)
  		fprintf(1,'Iteracion: %d, Mejor: %f, NP %d\n ',generacion, mejorval, NP);
-		reshape(mejorindividuo,M,N)
-		scheduleCost(reshape(mejorindividuo,M,N))
+		%scheduleCost(mejorindividuo,M,N)
+%		scheduleCost(reshape(mejorindividuo,M,N))
  		%for n=1:(M*N)
  		%	fprintf(1,'Mejor(%d) = %f\n\n', n,mejorindividuo(n));
  		%end

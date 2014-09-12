@@ -8,5 +8,7 @@ function c=costoSchedule(J,M,N)
     %máxima de las máquinas
     %http://www2.informatik.hu-berlin.de/alcox/lehre/lvws1011/coalg/makespan_scheduling.pdf
     J=reshape(J,M,N);
+    Jmax=repmat(max(J),M,1);
+    W = Jmax-J
     c=max(sum(J,2));
 end

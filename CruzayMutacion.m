@@ -1,4 +1,4 @@
-function offspring=CruzayMutacion(p,m,M,N,NP,orden)
+function offspring=CruzayMutacion(p,m,M,N,NP,CR,orden)
     %En la cruza se elige la información en común
     %entre ambos padres, se elige con proabilidad CR
     %a uno de los padres como "plantilla", y se permutan
@@ -16,7 +16,9 @@ function offspring=CruzayMutacion(p,m,M,N,NP,orden)
         %Aquí se puede utilizar CR
         %proba CR para el padre
         %y 1-CR para la madre, por ejemplo...
-        offspring=p;
+        if unifrnd(0,1)>=CR
+        	offspring=permutarTrabajos(p,M,N,orden);
+        end
         %Aquí se permutan las entradas que son distintas
         %entre los padres
         %len=length(c)
@@ -28,13 +30,14 @@ function offspring=CruzayMutacion(p,m,M,N,NP,orden)
         %Si el orden se toma en cuenta, no se permutan los trabajos
         %se sigue el mismo procedimiento mencionado arriba, pero para
         %cada trabajo, respetando el orden de los mismos
+        size(p);
         p=reshape(p,M,N);
         m=reshape(m,M,N);
         offspring=reshape(offspring,M,N);
         %size(offspring)
         for i=1:N
             %i, size(p), size(m)
-            offspring(:,i)==CruzayMutacion(p(:,i),m(:,i),M,1,NP,false);
+            offspring(:,i)=CruzayMutacion(p(:,i),m(:,i),M,1,NP,false);
         end
         offspring=offspring(:);
     end
