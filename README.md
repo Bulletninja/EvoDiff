@@ -1,4 +1,0 @@
-EvoDiff
-=======
-
-Differential evolution implementation

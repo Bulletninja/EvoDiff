@@ -1,4 +1,4 @@
-function [mejorindividuo, nfeval] = EvoDif_scheduling(NP,J,CR,orden,generaciones)
+function [mejorindividuo, mejorval, nfeval, difflb, diffub, vals] = EvoDif_scheduling(NP,Prob,CR,generaciones)
 %Minimización con Evolución diferencial
 %Salidas
 %--------------------
@@ -13,6 +13,7 @@ function [mejorindividuo, nfeval] = EvoDif_scheduling(NP,J,CR,orden,generaciones
 %D		: M*N
 %J      : Matriz de trabajos
 %generaciones	: máximo número de generaciones
+J=Prob.P;
 [M,N]=size(J);
 count=(1:(M*N))';
 %-----Inicializar población------------------------------ 
@@ -29,11 +30,11 @@ nfeval			=0;
 
 %----Evaluación------------------------------------------
 imejor	= 1; %índice del mejor
-val(1)	= scheduleCost(poblacion(:,imejor),M,N);
+val(1)	= Makespan(poblacion(:,imejor),M,N);
 mejorval= val(1);
 nfeval	= nfeval+1;
 for i=2:NP
-	val(i)	= scheduleCost(poblacion(:,i),M,N);
+	val(i)	= Makespan(poblacion(:,i),M,N);
 	nfeval	= nfeval+1;
 	if (val(i)<mejorval)
 		imejor	= i;
@@ -66,7 +67,7 @@ ind	=	zeros(4);
 
 generacion=1;
 
-while((generacion < generaciones) && (mejorval>1.e-5))
+while((generacion < generaciones))% && (mejorval>1.e-5))
 %    generacion
 	%poblacion_vieja = poblacion;
 	%"barajar" población
@@ -93,7 +94,7 @@ while((generacion < generaciones) && (mejorval>1.e-5))
 		mi(:,i)=mejorinditeracion;
 	end
 
-	%mui	=	rand(NP,D) < CR;%"Máscara" de los perturbados
+	%mui	=	ran d(NP,D) < CR;%"Máscara" de los perturbados
 	%mpv	=	mui < 0.5;	%ídem población vieja
     
 %-----Elegir la estrategia----------------------
@@ -117,8 +118,9 @@ while((generacion < generaciones) && (mejorval>1.e-5))
 %	ui = poblacion_vieja.*mpv + ui.*mui;
 
 %-----Elección de vectores de la nueva población---
+vals=[vals mean(val)];
 	for i=1:NP
-		val_tmp	=	scheduleCost(ui(:,i),M,N);
+		val_tmp	=	Makespan(ui(:,i),M,N);
 		nfeval	=	nfeval+1;
 		if (val_tmp <= val(i))
 			poblacion(:,i)	= ui(:,i);
@@ -133,8 +135,8 @@ while((generacion < generaciones) && (mejorval>1.e-5))
 %-----Salida---------------------------------------------
  	if (rem(generacion,20)==0)
  		fprintf(1,'Iteracion: %d, Mejor: %f, NP %d\n ',generacion, mejorval, NP);
-		%scheduleCost(mejorindividuo,M,N)
-%		scheduleCost(reshape(mejorindividuo,M,N))
+		%Makespan(mejorindividuo,M,N)
+%		Makespan(reshape(mejorindividuo,M,N))
  		%for n=1:(M*N)
  		%	fprintf(1,'Mejor(%d) = %f\n\n', n,mejorindividuo(n));
  		%end
@@ -143,7 +145,8 @@ while((generacion < generaciones) && (mejorval>1.e-5))
 generacion=generacion+1;
 end%endwhile (generacion < generaciones)
 mejorindividuo=mejorindividuo(:);
-%mejorval=scheduleCost(mejorindividuo,M,N);
+%mejorval=Makespan(mejorindividuo,M,N);
 mejorindividuo=reshape(mejorindividuo,M,N);
-
+difflb=mejorval-Prob.lb;
+diffub=mejorval-Prob.ub;
 end
