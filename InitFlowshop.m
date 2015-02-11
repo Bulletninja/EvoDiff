@@ -183,62 +183,168 @@ FS(10).nfeval=0;                                                              %
 FS(10).vals=[];                                                               %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%%%%%%%%%%%%%%%%%%%%%%%%FS(i).stats%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Simular 25 veces por cada caso de prueba
+%The study should be made with dimensions D = 50, D = 100, D=200, D=500, and D = 1,000. 
+%The maximum number of fitness evaluations is 5,000·D. 
+%Each run stops when the maximal number of evaluations is achieved.
+%Calcular las siguientes medidas de desempeño
+N = 30; %Simulaciones
 generaciones=100;
 NP=5*(20*5);%5*D
-mejorindividuo=[];
-for j=1:10
-  for i=1:30
-     [mejorindividuo, mejorval, nfeval, difflb, diffub, vals, mejores]=EvoDif_Programa(FS(j),NP,generaciones,'Makespan');
-     if mejorval<FS(j).mejorval
-        FS(j).mejorval=mejorval;
-        FS(j).mejorindividuo=mejorindividuo;
-        FS(j).nfeval=nfeval;
-        FS(j).difflb=difflb;
-        FS(j).diffub=diffub;
-        FS(j).vals=vals;
-     end
-     FS(j).mejoresvals=[FS(j).mejoresvals mejorval];
-  end
-  FS(j).relerrlb=mean(FS(j).difflb)/FS(j).lb;
-  FS(j).relerrub=mean(FS(j).diffub)/FS(j).ub;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+for i=1:10
+  FS(i).stats.errslb = zeros(N,generaciones); %Acumula los errores respecto a la cota inferior 
+  FS(i).stats.errsub = zeros(N,generaciones); %Acumula los errores respecto a la cota superior
+  FS(i).stats.vals   = zeros(N,generaciones); 
+  FS(i).stats.nfevals  = zeros(N,1);
   
-  %Plot del makespan promedio
-  f=figure;
-  set(f,'visible','off')
-  titulo=sprintf('Taillard Flowshop (5x20) %d',j);
-  plot(vals,'-.b')
-  hold on;
-  plot(mejores,'-ro')
-  legend('Makespan promedio', 'Mejor makespan')
-  title(titulo)
-
-  xlabel('Generaciones')
-  ylabel('Makespan')
-
-  nombre = sprintf('TaillardFS_%d',j);
-  saveas(f,nombre,'pdf');
-  saveas(f,nombre,'fig');
+  FS(i).statsSelectivo.errslb = zeros(N,generaciones); %Acumula los errores respecto a la cota inferior 
+  FS(i).statsSelectivo.errsub = zeros(N,generaciones); %Acumula los errores respecto a la cota superior
+  FS(i).statsSelectivo.vals   = zeros(N,generaciones); 
+  FS(i).statsSelectivo.nfevals  = zeros(N,1);
   
   
-  %Tabla de mejor individuo
-  mejorindfile = sprintf('mejorind_%d',j); %nombre del archivo el mejor individuo
-  FSJ=FS(j);
-  save(mejorindfile,'mejorindividuo');
-
-  %Tablas de datos
-  datosfile = sprintf('datos_%d.mat',j);%nombre del archivo de los datos del problema
-  save(datosfile,'-struct', 'FSJ');
   
-  %%%%%%%%%%%%%%%%%%%%%%%
-  fprintf('\nLB\t\t\t\t\t\t\t %f\n',FSJ.lb)
-  fprintf('UB\t\t\t\t\t\t\t %f\n',FSJ.ub)
-  fprintf('Diferencia LB\t\t\t\t %f\n',FSJ.difflb)
-  fprintf('Diferencia UB\t\t\t\t %f\n',FSJ.diffub)
-  fprintf('Error relativo LB\t\t\t %f\n',FSJ.relerrlb)
-  fprintf('Error relativo UB\t\t\t %f\n',FSJ.relerrub)
-  fprintf('Mejor valor\t\t\t\t\t %f\n',FSJ.mejorval)
-  fprintf('Evaluaciones de la funci�n\t %f\n',FSJ.nfeval)
-  
-  FS(j).mejorindividuo
+  %FS(i).stats.avgerrlb = 0;% Error promedio respecto a la cota inferior
+  %FS(i).stats.avgerrub = 0;% Error promedio respecto a la cota superior
+  %FS(i).stats.maxerrlb = 0;% Error maximo respecto a la cota inferior
+  %FS(i).stats.maxerrub = 0;% Error maximo respecto a la cota superior
+  %FS(i).stats.minerrlb = 0;% Error minimo respecto a la cota inferior
+  %FS(i).stats.minerrub = 0;% Error minimo respecto a la cota superior
+  %FS(i).stats.mederrlb = 0;% Mediana del error respecto a la cota inferior
+  %FS(i).stats.mederrub = 0;% Mediana del error respecto a la cota superior
 end
+
+
+
+for j=1:1 %Este for recorre los problemas (10)
+  for i=1:N %Simulaciones
+     [mejorindividuo, mejorval, nfeval, difflb, diffub, mejores]=EvoDif_Programa(FS(j),NP,generaciones,'Makespan',false);
+     FS(j).stats.errlb(i)   = difflb;
+     FS(j).stats.errub(i)   = diffub;
+     FS(j).stats.vals(i,:)    = mejores;
+     FS(j).stats.nfevals(i) = nfeval;
+     
+     [mejorindividuo, mejorval, nfeval, difflb, diffub, mejores]=EvoDif_Programa(FS(j),NP,generaciones,'Makespan', true);
+     FS(j).statsSelectivo.errlb(i)   = difflb;
+     FS(j).statsSelectivo.errub(i)   = diffub;
+     FS(j).statsSelectivo.vals(i,:)    = mejores;
+     FS(j).statsSelectivo.nfevals(i) = nfeval;
+     %if mejorval<FS(j).mejorval
+     %   FS(j).mejorval=mejorval;
+     %   FS(j).mejorindividuo=mejorindividuo;
+     %   FS(j).nfeval=nfeval;
+     %   FS(j).difflb=difflb;
+     %   FS(j).diffub=diffub;
+     %   FS(j).vals=vals;
+     %end
+     
+  end
+  
+  if 0
+    %Plot del makespan promedio
+    f=figure;
+    set(f,'visible','off')
+    titulo=sprintf('Taillard Flowshop (5x20) %d',j);
+    plot(vals,'-.b')
+    hold on;
+    plot(mejores,'-ro')
+    legend('Makespan promedio', 'Mejor makespan')
+    title(titulo)
+  
+    xlabel('Generaciones')
+    ylabel('Makespan')
+
+    nombre = sprintf('TaillardFS_%d',j);
+    saveas(f,nombre,'pdf');
+    saveas(f,nombre,'fig');
+     
+      
+    %Tabla de mejor individuo
+    mejorindfile = sprintf('mejorind_%d',j); %nombre del archivo el mejor individuo
+    FSJ=FS(j);
+    save(mejorindfile,'mejorindividuo');
+
+    %Tablas de datos
+    datosfile = sprintf('datos_%d.mat',j);%nombre del archivo de los datos del problema
+    save(datosfile,'-struct', 'FSJ');
+   end
+    %%%%%%%%%%%%%%%%%%%%%%%
+   % FSJ=FS(j);
+   % fprintf('\nLB\t\t\t\t\t\t\t %f\n',FSJ.lb)
+   % fprintf('UB\t\t\t\t\t\t\t %f\n',FSJ.ub)
+   % fprintf('Diferencia LB\t\t\t\t %f\n',FSJ.difflb)
+   % fprintf('Diferencia UB\t\t\t\t %f\n',FSJ.diffub)
+   % fprintf('Error relativo LB\t\t\t %f\n',FSJ.relerrlb)
+   % fprintf('Error relativo UB\t\t\t %f\n',FSJ.relerrub)
+   % fprintf('Mejor valor\t\t\t\t\t %f\n',FSJ.mejorval)
+   % fprintf('Evaluaciones de la funcin\t %f\n',FSJ.nfeval)
+      
+    %FS(j).mejorindividuo
+    %%Guardar errores
+        
+  %FS(j).stats.errslb(k)=FS(j).mejorval-FS(j).lb;
+  %FS(j).stats.errsub(k)=FS(j).mejorval-FS(j).ub;
+  figure;
+  boxplot(FS(j).stats.vals, 1, '.',1,1);
+  hold on;
+  boxplot(FS(j).statsSelectivo.vals, 1, ['x','*'], 1, 1);
+end
+
+%%%%%Calcular Stats%%%%%%%%%%%
+%for j=1:10
+%  FS(j).stats.avgerrlb = mean(F(j).stats.errslb);
+%  FS(j).stats.avgerrub = mean(F(j).stats.errsub);
+%  FS(j).stats.maxerrlb = max(F(j).stats.errslb);
+%  FS(j).stats.maxerrub = max(F(j).stats.errsub);
+%  FS(j).stats.minerrlb = min(F(j).stats.errslb);
+%  FS(j).stats.minerrub = min(F(j).stats.errsub);
+%  FS(j).stats.mederrlb = median(F(j).stats.errslb);
+%  FS(j).stats.mederrub = median(F(j).stats.errsub);
+%  FSJ=FS(j);
+%  fprintf('Error promedio LB:\t', FSJ.stats.avegerrlb)
+%  fprintf('Error promedio UB:\t', FSJ.stats.avgerrub)
+%  fprintf('Error maximo LB:\t', FSJ.stats.maxerrlb)
+%  fprintf('Error maximo UB:\t', FSJ.stats.maxerrub)
+%  fprintf('Error minimo LB:\t', FSJ.stats.minerrlb)
+%  fprintf('Error minimo UB:\t', FSJ.stats.minerrub)
+%  fprintf('Mediana de los errores LB:\t', FSJ.stats.mederrlb)
+%  fprintf('Mediana de los errores UB:\t', FSJ.stats.mederrub)
+%end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Simulación con transformacion de parametros aqui
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Comparar algoritmo con Evolucion diferencial simple con transformacion
+%de parametros a parametros reales (Tengo un pdf con eso)
+
+%Statistical analysis on the average error. 
+%A comparision should be carried out by applying non-parametric tests, such as Wilcoxon's test and Holm's test. 
+%General information and software on these tests may be found in the following link: http://sci2s.ugr.es/sicidm/. 
+%See as well: 
+%S. Garcia, D. Molina, M. Lozano, F. Herrera, 
+%A study on the use of non-parametric tests for analyzing the evolutionary algorithms' behaviour: 
+%a case study on the CEC'2005 Special Session on Real Parameter Optimization. 
+%Journal of Heuristics 15 (2009) 617-644. doi: 10.1007/s10732-008-9080-4. (Pdf file).
+
+%An analysis of the scalability behaviour of the proposed algorithms.
+%An investigation of the computational running time of the algorithms. 
+%Authors should provide, for each function, the average running time on the 25 runs. 
+%In addition, the computational conditions (machine, programming language, compiler, etc.) 
+%should be specified in the paper.
+%In addition, authors should provide the following material:
+%The source code of the algorithms. 
+%The source codes of the algorithms will be published as complementary material to the special issue 
+%(they will be available from an associated website).
+%An Excel file having the performance measures achieved by the algorithms on every test problem.
+
+
+
+
+
+
+
+

@@ -1,28 +1,28 @@
-function [mejorindividuo, mejorval, nfeval, difflb, diffub, vals, mejores] = EvoDif_Programa(Prob,NP,generaciones,f)
-%Minimizaci贸n con Evoluci贸n diferencial
+function [mejorindividuo, mejorval, nfeval, difflb, diffub, mejores] = EvoDif_Programa(Prob,NP,generaciones,f, selectivo)
+%Minimizaci脙鲁n con Evoluci脙鲁n diferencial
 %Salidas
 %--------------------
-%bestmem	: mejor soluci贸n
-%nfeval		: n煤mero de evaluaci贸n de la funci贸n
+%bestmem	: mejor soluci脙鲁n
+%nfeval		: n脙潞mero de evaluaci脙鲁n de la funci脙鲁n
 
 %Entradas
 %--------------------
-%NP		: N煤mero de individuos en la poblaci贸n
-%M		: N鷐ero de m醧uinas (y operaciones por trabajo)
-%N		: N鷐ero de trabajos
+%NP		: N脙潞mero de individuos en la poblaci脙鲁n
+%M		: N煤mero de m谩quinas (y operaciones por trabajo)
+%N		: N煤mero de trabajos
 %D		: M*N
 %J      : Matriz de trabajos
-%generaciones	: m谩ximo n煤mero de generaciones
+%generaciones	: m脙隆ximo n脙潞mero de generaciones
 J=Prob.P;
 [M,N]=size(J);
 count=(1:(M*N))';
-vals=zeros(1,generaciones);
+%vals=zeros(1,generaciones);
 mejores=zeros(1,generaciones);
 
 generacion=1;
-%-----Inicializar poblaci髇------------------------------ 
+%-----Inicializar poblaci贸n------------------------------ 
 poblacion = zeros(M*N, NP);
-%Cada columna de la poblaci髇 es una matriz de trabajos
+%Cada columna de la poblaci贸n es una matriz de trabajos
 for i=1:NP
 	poblacion(:,i)=permutarTrabajos(J);
 end
@@ -32,8 +32,8 @@ mejorindividuo		= zeros(M*N,1);
 mejorinditeracion	= zeros(M*N,1);
 nfeval              = 0;
 
-%----Evaluaci髇------------------------------------------
-imejor	= 1; %铆ndice del mejor
+%----Evaluaci贸n------------------------------------------
+imejor	= 1; %脙颅ndice del mejor
 val(1)	= feval(f,reshape(poblacion(:,imejor),M,N));%scheduleCost(poblacion(:,imejor),M,N);
 %mejorval= val(1);
 nfeval	= nfeval+1;
@@ -48,7 +48,7 @@ mejorinditeracion=poblacion(:,imejor);
 mejorvaliteracion=mejorval;
 
 mejorindividuo	= mejorinditeracion;
-%----Minimizaci贸n---------------------------------------
+%----Minimizaci脙鲁n---------------------------------------
 %----Matrices de poblaciones---------------------------
 mp1	=	zeros(M*N,NP);
 mp2	=	zeros(M*N,NP);
@@ -63,19 +63,22 @@ a2	=	zeros(NP);
 
 ind	=	zeros(4);
 
-mid=ceil(0.5*NP);
-while((generacion < generaciones) && (mejorval>1.e-5))
-%if (rem(generacion,10)==0)
-if rand>0.9
-    mid=NP;
-else
-    mid=ceil(0.5*NP);
+mid=NP;
+if  selectivo
+  mid = ceil(0.5*NP);
 end
-vals(generacion)=mean(val);
+while((generacion < generaciones) && (mejorval>1.e-5))
+%if selectivo && (rem(generacion,10)==0)
+%    mid=NP;
+%end
+%else
+%    mid=ceil(0.5*NP);
+%end
+%vals(generacion)=mean(val);
 mejores(generacion)=val(1);
 
-    poblacion_vieja = poblacion;
-	%"barajar poblaci髇
+  poblacion_vieja = poblacion;
+	%"barajar poblaci贸 n
 	ind	=	randperm(4);
 	a1	=	randperm(NP);
 	rt	=	rem(rot+ind(1),NP);
@@ -94,13 +97,13 @@ mejores(generacion)=val(1);
 
     
 %-----Elegir la estrategia----------------------
-%----------Mutaci髇/Perturbaci髇----------------
+%----------Mutaci贸n/Perturbaci贸n----------------
     for i=1:mid
         %offsprings
         ui(:,i)=CruzayMutacion2(mp1(:,i),mp2(:,i),M,N);
     end
 
-%-----Elecci髇 de vectores de la nueva poblaci髇---
+%-----Elecci贸n de vectores de la nueva poblaci贸n---
 	for i=1:mid
 		val_tmp	=	feval(f,reshape(ui(:,i),M,N));
 		nfeval	=	nfeval+1;
@@ -120,7 +123,7 @@ poblacion=poblacion(:,SortIndex);
 %-----Plot-----------------------------------------------------------
 generacion=generacion+1;
 end%endwhile (generacion < generaciones)
-vals(generaciones)=mean(vals);
+%vals(generaciones)=mean(vals);
 mejores(generaciones)=val(1);
 
 mejorindividuo=reshape(mejorindividuo,M,N);

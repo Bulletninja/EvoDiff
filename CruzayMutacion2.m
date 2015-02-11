@@ -1,12 +1,12 @@
 function offspring=CruzayMutacion2(p,m,M,N)
     %CR=0.1;
-    %En la cruza se elige la información en común
+    %En la cruza se elige la informacin en comn
     %entre ambos padres, se elige con proabilidad CR
     %a uno de los padres como "plantilla", y se permutan
     %las entradas distintas entre los padres.
     %se elige a uno de los padres como plantilla, pues 
     %cada padre representa un schedule, y elegir "mezclar"
-    %las entradas distintas podría generar offsprings inválidos.
+    %las entradas distintas podra generar offsprings invlidos.
     p=reshape(p,M,N);
     m=reshape(m,M,N);
     offspring=p;
@@ -17,7 +17,10 @@ function offspring=CruzayMutacion2(p,m,M,N)
      %    p=rand(1,N)<CR;
      %    v=abs(p-v);
      %    v=~v;
-     %end    
+     %end
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %%Esta parte permuta aleatoriamente los trabajos (columnas de la matriz)
+ %%que no coinciden entre los padres del individuo actual
     indx=1:N; %
     c=indx.*v; %
     %d=indx.*(~v);
@@ -25,6 +28,7 @@ function offspring=CruzayMutacion2(p,m,M,N)
     c(c==0)=[];%Eliminar los ceros
     %if u<CR
         offspring(:,c)=offspring(:,c(randperm(length(c))));
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %else
     %    offspring(:,d)=offspring(:,d(randperm(length(d))));
     %end
