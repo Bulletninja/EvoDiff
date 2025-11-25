@@ -1,5 +1,6 @@
 function C=Makespan(O)%flow shop makespan
-    %O=P;
+    % Create local copy to avoid mutating input
+    O=O;
     [M,N]=size(O);
     %for i=2:M
     %    O(i,1)=O(i,1)+O(i-1,1);

@@ -218,7 +218,7 @@ end
 
 
 
-for j=1:1 %Este for recorre los problemas (10)
+for j=1:10 %Este for recorre los problemas (10)
   for i=1:N %Simulaciones
      [mejorindividuo, mejorval, nfeval, difflb, diffub, mejores]=EvoDif_Programa(FS(j),NP,generaciones,'Makespan',false);
      FS(j).stats.errlb(i)   = difflb;

@@ -110,6 +110,11 @@ mejores(generacion)=val(1);
 		if (val_tmp <= val(i))
 			poblacion(:,i)	= ui(:,i);
 			val(i)		= val_tmp;
+			% Update global best if this offspring is better
+			if (val_tmp < mejorval)
+				mejorval	= val_tmp;
+				mejorindividuo	= ui(:,i);
+			end
 		end
 	end
 	mejorinditeracion	= mejorindividuo;
