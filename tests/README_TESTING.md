@@ -2,6 +2,11 @@
 
 ## Quick Start
 
+### Setup (required once per session)
+```matlab
+setup_paths()  % Configure MATLAB path for new directory structure
+```
+
 ### Run all tests once
 ```matlab
 run_tests()
@@ -270,10 +275,10 @@ end
 
 ```bash
 # Terminal 1: Run continuous tests
-matlab -r "watch_tests()"
+matlab -r "setup_paths(); watch_tests()"
 
 # Terminal 2: Edit code
-vim Makespan.m
+vim src/Makespan.m
 
 # Watch Terminal 1 automatically show test results
 ```
@@ -283,6 +288,7 @@ vim Makespan.m
 Always run full test suite:
 
 ```matlab
+setup_paths();
 results = run_tests('verbose');
 if results.success
     fprintf('✅ Safe to commit\n');
@@ -300,7 +306,7 @@ Create `.git/hooks/pre-commit`:
 # Run tests before allowing commit
 
 echo "Running tests..."
-matlab -batch "results = run_tests(); exit(~results.success)" 2>&1
+matlab -batch "setup_paths(); results = run_tests(); exit(~results.success)" 2>&1
 
 if [ $? -ne 0 ]; then
     echo "❌ Tests failed. Commit aborted."
@@ -419,7 +425,7 @@ jobs:
       - name: Run tests
         uses: matlab-actions/run-command@v1
         with:
-          command: "results = run_tests(); exit(~results.success)"
+          command: "setup_paths(); results = run_tests(); exit(~results.success)"
 ```
 
 ---
@@ -434,10 +440,19 @@ jobs:
 - ✅ Better design
 
 **Quick Commands:**
+- `setup_paths()` - Configure paths (required once per session)
 - `run_tests()` - Run once
 - `watch_tests()` - Continuous
 - `run_tests('pattern', 'name')` - Specific test
 - `run_tests('verbose')` - Detailed output
+
+**Project Structure:**
+```
+src/      - Source code (Makespan.m, EvoDif_Programa.m, etc.)
+scripts/  - Entry points (InitFlowshop.m, etc.)
+tests/    - Test files
+data/     - Benchmark data (.mat)
+```
 
 **Next Steps:**
 1. Write test for new feature (Red)
