@@ -1,0 +1,13 @@
+# Results (generated outputs - reproducible)
+results/
+
+# MATLAB/Octave temporary files
+octave-workspace
+*.asv
+
+# Editor backups
+*~
+*.swp
+
+# macOS
+.DS_Store

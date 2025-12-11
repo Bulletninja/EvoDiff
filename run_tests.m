@@ -20,7 +20,9 @@ function results = run_tests(varargin)
 
     % Add paths
     addpath('tests');
-    addpath('.');
+    addpath('src');
+    addpath('scripts');
+    addpath('data');
 
     % Find all test files
     test_files = dir('tests/test_*.m');
