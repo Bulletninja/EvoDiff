@@ -15,3 +15,6 @@ octave-workspace
 # MATLAB generated
 *.mex*
 *.mlappinstall
+
+# Claude Code
+CLAUDE.md

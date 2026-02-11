@@ -12,6 +12,10 @@ function setup_paths()
     addpath(fullfile(root, 'src', 'io'));
     addpath(fullfile(root, 'scripts'));
     addpath(fullfile(root, 'tests'));
+    addpath(fullfile(root, 'tests', 'acceptance'));
+    addpath(fullfile(root, 'tests', 'acceptance', 'specs'));
+    addpath(fullfile(root, 'tests', 'acceptance', 'dsl'));
+    addpath(fullfile(root, 'tests', 'acceptance', 'drivers'));
     addpath(fullfile(root, 'data'));
     addpath(fullfile(root, 'config'));
 
