@@ -49,14 +49,28 @@ function [num_pass, num_fail, results] = spec_benchmark_conformance(ctx)
         results{end+1} = struct('name', name, 'status', 'FAIL', 'message', e.message);
     end
 
-    %% Assertion 4: Optimizer finds solutions within reasonable range on problem 1
-    name = 'Optimizer finds solutions within reasonable range on problem 1';
+    % Shared setup for assertions 4-5: optimize problem 1
+    problem1 = [];
+    bounds1 = struct('lower', 0, 'upper', 0);
+    result = [];
+    optim_ok = false;
+    optim_err = 'optimizer not run';
     try
         problem1 = ctx.problems.taillard_instance(1);
         bounds1 = ctx.problems.bounds(problem1);
         opts = struct('population_size', 50, 'max_generations', 20);
         result = ctx.solver.optimize(problem1, opts);
+        optim_ok = true;
+    catch e
+        optim_err = e.message;
+    end
+
+    %% Assertion 4: Optimizer finds solutions within reasonable range on problem 1
+    name = 'Optimizer finds solutions within reasonable range on problem 1';
+    try
+        assert(optim_ok, sprintf('Setup failed: %s', optim_err));
         ctx.verify.is_true(result.best_makespan <= 2 * bounds1.upper);
+        ctx.verify.is_true(result.best_makespan >= bounds1.lower);
         num_pass = num_pass + 1;
         results{end+1} = struct('name', name, 'status', 'PASS');
     catch e
@@ -67,6 +81,7 @@ function [num_pass, num_fail, results] = spec_benchmark_conformance(ctx)
     %% Assertion 5: Benchmark result is independently verifiable
     name = 'Benchmark result is independently verifiable';
     try
+        assert(optim_ok, sprintf('Setup failed: %s', optim_err));
         recalculated = ctx.solver.evaluate_schedule(result.best_schedule);
         ctx.verify.equals(result.best_makespan, recalculated);
         num_pass = num_pass + 1;

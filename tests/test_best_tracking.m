@@ -36,9 +36,7 @@ function test_best_tracking()
     %% Test 3: Returned best matches reported best
     fprintf('    [3/3] Consistency check...');
 
-    [M, N] = size(Prob.P);
-    best_ind_reshaped = reshape(best_ind, M, N);
-    actual_fitness = evaluate_makespan(best_ind_reshaped);
+    actual_fitness = evaluate_makespan(best_ind);
 
     assert(abs(actual_fitness - best_val) < 1e-10, ...
         sprintf('Returned best fitness (%.6f) should match actual (%.6f)', ...

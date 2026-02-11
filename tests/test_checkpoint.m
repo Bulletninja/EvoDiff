@@ -1,10 +1,8 @@
 function test_checkpoint()
 % TEST_CHECKPOINT - Test checkpoint save/load functionality
 %
-% Tests:
-%   1. save_checkpoint creates file
-%   2. load_checkpoint reads correct data
-%   3. find_latest_checkpoint finds most recent
+% Tests production functions: save_checkpoint, load_checkpoint,
+% find_latest_checkpoint from src/io/.
 
     fprintf('  Testing checkpoint functionality...\n');
 
@@ -29,7 +27,7 @@ function test_checkpoint()
     FS_mock(1).lb = 10;
     FS_mock(1).stats.errlb = [1, 2, 3];
 
-    % Save checkpoint
+    % Save checkpoint (production function from src/io/)
     checkpoint_file = fullfile(test_dir, 'checkpoint_problem_01.mat');
     save_checkpoint(checkpoint_file, FS_mock, 1);
 
@@ -82,81 +80,4 @@ function test_checkpoint()
     end
 
     fprintf('  All checkpoint tests passed!\n');
-end
-
-
-%% Helper functions to test (will be in separate file later)
-
-function save_checkpoint(filepath, FS, last_completed_problem)
-% SAVE_CHECKPOINT - Save experiment state to file
-%
-% Args:
-%   filepath: Full path to checkpoint file
-%   FS: The FS struct array with all problem data
-%   last_completed_problem: Index of last completed problem (1-10)
-
-    checkpoint = struct();
-    checkpoint.FS = FS;
-    checkpoint.last_completed_problem = last_completed_problem;
-    checkpoint.timestamp = datestr(now, 'yyyy-mm-dd HH:MM:SS');
-    checkpoint.version = '1.0';
-
-    save(filepath, '-struct', 'checkpoint');
-end
-
-
-function [FS, last_completed_problem] = load_checkpoint(filepath)
-% LOAD_CHECKPOINT - Load experiment state from file
-%
-% Args:
-%   filepath: Full path to checkpoint file
-%
-% Returns:
-%   FS: The FS struct array
-%   last_completed_problem: Index of last completed problem
-
-    if ~exist(filepath, 'file')
-        error('Checkpoint file not found: %s', filepath);
-    end
-
-    checkpoint = load(filepath);
-    FS = checkpoint.FS;
-    last_completed_problem = checkpoint.last_completed_problem;
-end
-
-
-function [latest_file, latest_problem] = find_latest_checkpoint(results_dir)
-% FIND_LATEST_CHECKPOINT - Find checkpoint with highest problem number
-%
-% Args:
-%   results_dir: Directory containing checkpoint files
-%
-% Returns:
-%   latest_file: Full path to latest checkpoint (empty if none)
-%   latest_problem: Problem number from latest checkpoint (0 if none)
-
-    latest_file = '';
-    latest_problem = 0;
-
-    % Look for checkpoint files
-    pattern = fullfile(results_dir, 'checkpoint_problem_*.mat');
-    files = dir(pattern);
-
-    if isempty(files)
-        return;
-    end
-
-    % Extract problem numbers from all files and find max
-    problem_nums = zeros(length(files), 1);
-    for k = 1:length(files)
-        [~, name, ~] = fileparts(files(k).name);
-        tokens = regexp(name, 'checkpoint_problem_(\d+)', 'tokens');
-        if ~isempty(tokens)
-            problem_nums(k) = str2double(tokens{1}{1});
-        end
-    end
-
-    % Find highest problem number
-    [latest_problem, idx] = max(problem_nums);
-    latest_file = fullfile(results_dir, files(idx).name);
 end

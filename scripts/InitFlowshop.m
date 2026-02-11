@@ -37,14 +37,14 @@ end
 for j = 1:num_problems
     for i = 1:N
         [best_ind, best_val, num_evals, difflb, diffub, best_per_gen] = ...
-            de_flowshop(FS(j), NP, max_generations, config.fitness_function, false);
+            de_flowshop(FS(j), NP, max_generations, config.fitness_function, false, config.selection_ratio);
         FS(j).stats.errlb(i)   = difflb;
         FS(j).stats.errub(i)   = diffub;
         FS(j).stats.vals(i,:)  = best_per_gen;
         FS(j).stats.nfevals(i) = num_evals;
 
         [best_ind, best_val, num_evals, difflb, diffub, best_per_gen] = ...
-            de_flowshop(FS(j), NP, max_generations, config.fitness_function, true);
+            de_flowshop(FS(j), NP, max_generations, config.fitness_function, true, config.selection_ratio);
         FS(j).stats_selective.errlb(i)   = difflb;
         FS(j).stats_selective.errub(i)   = diffub;
         FS(j).stats_selective.vals(i,:)  = best_per_gen;

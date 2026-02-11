@@ -33,7 +33,7 @@ for i = 1:N
     fprintf('  Run %d/%d - Normal...', i, N);
     tic;
     [best_ind, best_val, num_evals, difflb, diffub, best_per_gen] = ...
-        de_flowshop(FS(j), NP, max_generations, config.fitness_function, false);
+        de_flowshop(FS(j), NP, max_generations, config.fitness_function, false, config.selection_ratio);
     elapsed = toc;
     fprintf(' %.1fs (best=%.0f, err_lb=%.1f%%)\n', elapsed, best_val, 100*difflb/FS(j).lb);
     results_normal(i,:) = best_per_gen;
@@ -42,7 +42,7 @@ for i = 1:N
     fprintf('  Run %d/%d - Selective...', i, N);
     tic;
     [best_ind, best_val, num_evals, difflb, diffub, best_per_gen] = ...
-        de_flowshop(FS(j), NP, max_generations, config.fitness_function, true);
+        de_flowshop(FS(j), NP, max_generations, config.fitness_function, true, config.selection_ratio);
     elapsed = toc;
     fprintf(' %.1fs (best=%.0f, err_lb=%.1f%%)\n', elapsed, best_val, 100*difflb/FS(j).lb);
     results_selective(i,:) = best_per_gen;

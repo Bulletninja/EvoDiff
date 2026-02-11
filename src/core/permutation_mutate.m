@@ -18,10 +18,7 @@ function offspring = permutation_mutate(p, m, M, N)
     m = reshape(m, M, N);
     offspring = p;
 
-    differs = prod(double(p ~= m));
-    indx = 1:N;
-    c = indx .* differs;
-    c(c == 0) = [];
+    c = find(any(p ~= m, 1));
 
     offspring(:, c) = offspring(:, c(randperm(length(c))));
     offspring = offspring(:);

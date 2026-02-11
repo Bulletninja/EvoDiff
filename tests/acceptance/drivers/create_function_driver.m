@@ -21,6 +21,7 @@ function driver = create_function_driver()
     % Configuration
     driver.load_defaults = @() load_config();
     driver.load_config_file = @(path) load_config(path);
+    driver.load_quick_test = @() load_config('config/quick_test.json');
 
     % Experiment
     driver.run_experiment = @(problems, config) run_experiment(problems, config);
@@ -46,8 +47,12 @@ function result = do_optimize(problem, opts)
     if isfield(opts, 'selective')
         selective = opts.selective;
     end
+    selection_ratio = 0.5;
+    if isfield(opts, 'selection_ratio')
+        selection_ratio = opts.selection_ratio;
+    end
     [best_ind, best_fit, num_evals, difflb, diffub, best_per_gen] = ...
-        de_flowshop(problem, NP, max_gen, 'evaluate_makespan', selective);
+        de_flowshop(problem, NP, max_gen, 'evaluate_makespan', selective, selection_ratio);
     result.best_schedule = best_ind;
     result.best_makespan = best_fit;
     result.num_evaluations = num_evals;
@@ -94,9 +99,8 @@ function verify_within_bounds_impl(value, lo, hi)
 end
 
 function verify_improves_over_time_impl(values)
-    nonzero = values(values > 0);
-    if length(nonzero) > 1
-        diffs = diff(nonzero);
+    if length(values) > 1
+        diffs = diff(values);
         assert(all(diffs <= 0), ...
             sprintf('Values should be monotonically non-increasing, max increase: %g', max(diffs)));
     end

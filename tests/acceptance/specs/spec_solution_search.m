@@ -12,10 +12,21 @@ function [num_pass, num_fail, results] = spec_solution_search(ctx)
     problem = ctx.problems.small_instance(3, 5, 42);
     opts = struct('population_size', 30, 'max_generations', 10);
 
+    % Shared optimizer call — assertions 1-3 and 7-8 depend on this result
+    result = [];
+    setup_ok = false;
+    setup_err = 'optimizer not run';
+    try
+        result = ctx.solver.optimize(problem, opts);
+        setup_ok = true;
+    catch e
+        setup_err = e.message;
+    end
+
     %% Assertion 1: Optimizer produces a valid schedule (valid permutation)
     name = 'Optimizer produces a valid schedule';
     try
-        result = ctx.solver.optimize(problem, opts);
+        assert(setup_ok, sprintf('Setup failed: %s', setup_err));
         ctx.verify.is_valid_schedule(result.best_schedule, problem);
         num_pass = num_pass + 1;
         results{end+1} = struct('name', name, 'status', 'PASS');
@@ -27,6 +38,7 @@ function [num_pass, num_fail, results] = spec_solution_search(ctx)
     %% Assertion 2: Solution quality never degrades over generations
     name = 'Solution quality never degrades over generations';
     try
+        assert(setup_ok, sprintf('Setup failed: %s', setup_err));
         ctx.verify.improves_over_time(result.best_per_generation);
         num_pass = num_pass + 1;
         results{end+1} = struct('name', name, 'status', 'PASS');
@@ -38,6 +50,7 @@ function [num_pass, num_fail, results] = spec_solution_search(ctx)
     %% Assertion 3: Reported best matches independent re-evaluation
     name = 'Reported best matches independent re-evaluation';
     try
+        assert(setup_ok, sprintf('Setup failed: %s', setup_err));
         reported = result.best_makespan;
         recalculated = ctx.solver.evaluate_schedule(result.best_schedule);
         ctx.verify.equals(reported, recalculated);
@@ -84,6 +97,30 @@ function [num_pass, num_fail, results] = spec_solution_search(ctx)
         s3 = ctx.solver.create_random_schedule(problem4);
         all_same = isequal(s1, s2) && isequal(s2, s3);
         ctx.verify.is_true(~all_same);
+        num_pass = num_pass + 1;
+        results{end+1} = struct('name', name, 'status', 'PASS');
+    catch e
+        num_fail = num_fail + 1;
+        results{end+1} = struct('name', name, 'status', 'FAIL', 'message', e.message);
+    end
+
+    %% Assertion 7: Evaluation count is positive
+    name = 'Evaluation count is positive';
+    try
+        assert(setup_ok, sprintf('Setup failed: %s', setup_err));
+        ctx.verify.is_true(result.num_evaluations > 0);
+        num_pass = num_pass + 1;
+        results{end+1} = struct('name', name, 'status', 'PASS');
+    catch e
+        num_fail = num_fail + 1;
+        results{end+1} = struct('name', name, 'status', 'FAIL', 'message', e.message);
+    end
+
+    %% Assertion 8: Convergence history has correct length
+    name = 'Convergence history has correct length';
+    try
+        assert(setup_ok, sprintf('Setup failed: %s', setup_err));
+        ctx.verify.equals(length(result.best_per_generation), opts.max_generations);
         num_pass = num_pass + 1;
         results{end+1} = struct('name', name, 'status', 'PASS');
     catch e

@@ -18,3 +18,5 @@ octave-workspace
 
 # Claude Code
 CLAUDE.md
+.scratchpad/
+.claude/audit/

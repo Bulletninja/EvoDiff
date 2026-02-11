@@ -24,6 +24,7 @@ function driver = create_script_driver()
     % Configuration (via CLI)
     driver.load_defaults = @() script_load_config('', root);
     driver.load_config_file = @(path) script_load_config(path, root);
+    driver.load_quick_test = @() script_load_config('config/quick_test.json', root);
 
     % Experiment (via CLI)
     driver.run_experiment = @(problems, config) script_run_experiment(problems, config, root);
@@ -50,17 +51,29 @@ function run_octave_script(script_file, root)
     end
 end
 
+% SEC-002: Escape single quotes to prevent code injection in generated .m files
+function safe = escape_octave_string(s)
+    safe = strrep(s, '''', '''''');
+end
+
 function write_preamble(fid, root, input_file)
-    fprintf(fid, 'cd(''%s'');\n', root);
+    fprintf(fid, 'cd(''%s'');\n', escape_octave_string(root));
     fprintf(fid, 'setup_paths();\n');
     if ~isempty(input_file)
-        fprintf(fid, 'load(''%s'');\n', input_file);
+        fprintf(fid, 'load(''%s'');\n', escape_octave_string(input_file));
     end
 end
 
 function write_epilogue(fid, output_file, varname)
-    fprintf(fid, 'save(''%s'', ''%s'');\n', output_file, varname);
+    fprintf(fid, 'save(''%s'', ''%s'');\n', escape_octave_string(output_file), varname);
     fprintf(fid, 'fprintf(''SCRIPT_OK\\n'');\n');
+end
+
+% SEC-004: Clean up temp files after use
+function cleanup_temp_files(varargin)
+    for i = 1:length(varargin)
+        if exist(varargin{i}, 'file'), delete(varargin{i}); end
+    end
 end
 
 
@@ -78,7 +91,9 @@ function result = script_optimize(problem, opts, root)
     write_preamble(fid, root, input_file);
     fprintf(fid, 'selective = false;\n');
     fprintf(fid, 'if isfield(opts, ''selective''), selective = opts.selective; end\n');
-    fprintf(fid, '[best_ind, best_fit, num_evals, difflb, diffub, best_per_gen] = de_flowshop(problem, opts.population_size, opts.max_generations, ''evaluate_makespan'', selective);\n');
+    fprintf(fid, 'selection_ratio = 0.5;\n');
+    fprintf(fid, 'if isfield(opts, ''selection_ratio''), selection_ratio = opts.selection_ratio; end\n');
+    fprintf(fid, '[best_ind, best_fit, num_evals, difflb, diffub, best_per_gen] = de_flowshop(problem, opts.population_size, opts.max_generations, ''evaluate_makespan'', selective, selection_ratio);\n');
     fprintf(fid, 'result.best_schedule = best_ind;\n');
     fprintf(fid, 'result.best_makespan = best_fit;\n');
     fprintf(fid, 'result.num_evaluations = num_evals;\n');
@@ -91,6 +106,7 @@ function result = script_optimize(problem, opts, root)
     run_octave_script(script_file, root);
     loaded = load(output_file);
     result = loaded.result;
+    cleanup_temp_files(input_file, output_file, script_file);
 end
 
 function result = script_evaluate(schedule, root)
@@ -110,6 +126,7 @@ function result = script_evaluate(schedule, root)
     run_octave_script(script_file, root);
     loaded = load(output_file);
     result = loaded.result;
+    cleanup_temp_files(input_file, output_file, script_file);
 end
 
 function schedule = script_random_schedule(problem, root)
@@ -131,6 +148,7 @@ function schedule = script_random_schedule(problem, root)
     run_octave_script(script_file, root);
     loaded = load(output_file);
     schedule = loaded.schedule;
+    cleanup_temp_files(input_file, output_file, script_file);
 end
 
 function problems = script_load_taillard(root)
@@ -147,6 +165,7 @@ function problems = script_load_taillard(root)
     run_octave_script(script_file, root);
     loaded = load(output_file);
     problems = loaded.problems;
+    cleanup_temp_files(output_file, script_file);
 end
 
 function problem = script_load_taillard_instance(n, root)
@@ -164,6 +183,7 @@ function problem = script_load_taillard_instance(n, root)
     run_octave_script(script_file, root);
     loaded = load(output_file);
     problem = loaded.problem;
+    cleanup_temp_files(output_file, script_file);
 end
 
 function config = script_load_config(filepath, root)
@@ -176,7 +196,7 @@ function config = script_load_config(filepath, root)
     if isempty(filepath)
         fprintf(fid, 'config = load_config();\n');
     else
-        fprintf(fid, 'config = load_config(''%s'');\n', filepath);
+        fprintf(fid, 'config = load_config(''%s'');\n', escape_octave_string(filepath));
     end
     write_epilogue(fid, output_file, 'config');
     fclose(fid);
@@ -184,6 +204,7 @@ function config = script_load_config(filepath, root)
     run_octave_script(script_file, root);
     loaded = load(output_file);
     config = loaded.config;
+    cleanup_temp_files(output_file, script_file);
 end
 
 function exp_results = script_run_experiment(problems, config, root)
@@ -203,6 +224,7 @@ function exp_results = script_run_experiment(problems, config, root)
     run_octave_script(script_file, root);
     loaded = load(output_file);
     exp_results = loaded.exp_results;
+    cleanup_temp_files(input_file, output_file, script_file);
 end
 
 
@@ -234,9 +256,8 @@ function verify_within_bounds_impl(value, lo, hi)
 end
 
 function verify_improves_over_time_impl(values)
-    nonzero = values(values > 0);
-    if length(nonzero) > 1
-        diffs = diff(nonzero);
+    if length(values) > 1
+        diffs = diff(values);
         assert(all(diffs <= 0), ...
             sprintf('Values should be monotonically non-increasing, max increase: %g', max(diffs)));
     end

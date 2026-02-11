@@ -11,11 +11,17 @@ function results = run_experiment(problems, config)
 % Returns:
 %   results  - Struct array with .stats and .stats_selective per problem
 
+    % Seed RNG for reproducibility if configured
+    if isfield(config, 'random_seed') && ~isempty(config.random_seed)
+        rng(config.random_seed);
+    end
+
     num_problems = length(problems);
     N = config.num_runs;
     max_gen = config.max_generations;
     NP = config.population_size;
     f = config.fitness_function;
+    selection_ratio = config.selection_ratio;
 
     % Initialize results
     for i = 1:num_problems
@@ -38,7 +44,7 @@ function results = run_experiment(problems, config)
         for i = 1:N
             % Normal mode
             [~, ~, num_evals, difflb, diffub, best_per_gen] = ...
-                de_flowshop(problems(j), NP, max_gen, f, false);
+                de_flowshop(problems(j), NP, max_gen, f, false, selection_ratio);
             results(j).stats.vals(i,:)    = best_per_gen;
             results(j).stats.errlb(i)     = difflb;
             results(j).stats.errub(i)     = diffub;
@@ -46,7 +52,7 @@ function results = run_experiment(problems, config)
 
             % Selective mode
             [~, ~, num_evals, difflb, diffub, best_per_gen] = ...
-                de_flowshop(problems(j), NP, max_gen, f, true);
+                de_flowshop(problems(j), NP, max_gen, f, true, selection_ratio);
             results(j).stats_selective.vals(i,:)    = best_per_gen;
             results(j).stats_selective.errlb(i)     = difflb;
             results(j).stats_selective.errub(i)     = diffub;

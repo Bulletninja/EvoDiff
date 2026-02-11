@@ -19,7 +19,7 @@ function ctx = create_context(driver)
     % Configuration
     ctx.config.defaults = driver.load_defaults;
     ctx.config.from_file = driver.load_config_file;
-    ctx.config.quick_test = @() driver.load_config_file('config/quick_test.json');
+    ctx.config.quick_test = driver.load_quick_test;
 
     % Experiment orchestration
     ctx.experiment.run = driver.run_experiment;
