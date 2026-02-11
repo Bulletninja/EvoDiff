@@ -1,0 +1,34 @@
+#!/bin/bash
+# Pre-push gate: full test suite (~2s)
+# Blocks push if tests fail. Fail-open if Octave not available.
+#
+# Setup (one-time): git config core.hooksPath .githooks
+# Bypass: git push --no-verify
+
+# Only run if relevant files changed vs remote
+REMOTE=$(git rev-parse @{u} 2>/dev/null || echo "")
+if [ -n "$REMOTE" ]; then
+    CHANGED=$(git diff --name-only "$REMOTE" HEAD -- '*.m' 'data/' 'config/')
+    if [ -z "$CHANGED" ]; then
+        exit 0
+    fi
+fi
+
+# Fail-open if Octave not available
+if ! command -v octave &> /dev/null; then
+    echo "Octave not found — skipping pre-push tests (fail-open)."
+    exit 0
+fi
+
+echo "Pre-push: running full test suite..."
+
+octave --no-gui --norc --eval "results = run_tests(); if ~results.success, exit(1); end"
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "Pre-push tests FAILED — push blocked."
+    echo "  Bypass: git push --no-verify"
+    exit 1
+fi
+
+echo "Pre-push tests passed."
