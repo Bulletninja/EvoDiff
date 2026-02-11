@@ -10,6 +10,10 @@ function C = evaluate_makespan(O)
 % Returns:
 %   C - Makespan value (completion time of last job on last machine)
 
+    % CR-104: validate input
+    assert(~isempty(O) && isnumeric(O) && all(size(O) > 0), ...
+        'Processing times matrix must be a non-empty numeric matrix');
+
     C_mat = O;
     [M, N] = size(C_mat);
 

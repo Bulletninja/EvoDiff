@@ -52,11 +52,21 @@ function test_permutation_mutate()
     assert(~all_same, 'Mutation should produce different results');
     fprintf(' done\n');
 
-    %% Test 3: Identical parents produce identical offspring
+    %% Test 3: Identical parents produce a valid permutation (CR-103 fallback swap)
     fprintf('    [3/3] Identical parents...');
     offspring_same = permutation_mutate(p1, p1, M, N);
-    assert(isequal(offspring_same, p1), ...
-        'Identical parents should produce identical offspring');
+    % CR-103: with fallback, offspring is a valid permutation (may differ by 2-column swap)
+    off_mat_same = reshape(offspring_same, M, N);
+    for i = 1:N
+        found = false;
+        for j = 1:N
+            if isequal(J(:,i), off_mat_same(:,j))
+                found = true;
+                break;
+            end
+        end
+        assert(found, sprintf('Job %d not found in offspring from identical parents', i));
+    end
     fprintf(' done\n');
 
     fprintf('  All permutation_mutate tests passed!\n');

@@ -69,7 +69,8 @@ function config = load_config(filepath)
     assert(ischar(config.problem_file), 'problem_file must be a string');
 
     % Range validation
-    assert(config.population_size > 0, 'population_size must be positive');
+    % CR-107: de_flowshop requires NP >= 2 for parent pair selection
+    assert(config.population_size >= 2, 'population_size must be at least 2');
     assert(config.max_generations > 0, 'max_generations must be positive');
     assert(config.num_runs > 0, 'num_runs must be positive');
     assert(config.selection_ratio > 0 && config.selection_ratio <= 1, ...

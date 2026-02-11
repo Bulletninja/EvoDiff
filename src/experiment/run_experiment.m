@@ -42,21 +42,27 @@ function results = run_experiment(problems, config)
 
     for j = 1:num_problems
         for i = 1:N
-            % Normal mode
-            [~, ~, num_evals, difflb, diffub, best_per_gen] = ...
-                de_flowshop(problems(j), NP, max_gen, f, false, selection_ratio);
-            results(j).stats.vals(i,:)    = best_per_gen;
-            results(j).stats.errlb(i)     = difflb;
-            results(j).stats.errub(i)     = diffub;
-            results(j).stats.nfevals(i)   = num_evals;
+            try
+                % Normal mode
+                [~, ~, num_evals, difflb, diffub, best_per_gen] = ...
+                    de_flowshop(problems(j), NP, max_gen, f, false, selection_ratio);
+                results(j).stats.vals(i,:)    = best_per_gen;
+                results(j).stats.errlb(i)     = difflb;
+                results(j).stats.errub(i)     = diffub;
+                results(j).stats.nfevals(i)   = num_evals;
 
-            % Selective mode
-            [~, ~, num_evals, difflb, diffub, best_per_gen] = ...
-                de_flowshop(problems(j), NP, max_gen, f, true, selection_ratio);
-            results(j).stats_selective.vals(i,:)    = best_per_gen;
-            results(j).stats_selective.errlb(i)     = difflb;
-            results(j).stats_selective.errub(i)     = diffub;
-            results(j).stats_selective.nfevals(i)   = num_evals;
+                % Selective mode
+                [~, ~, num_evals, difflb, diffub, best_per_gen] = ...
+                    de_flowshop(problems(j), NP, max_gen, f, true, selection_ratio);
+                results(j).stats_selective.vals(i,:)    = best_per_gen;
+                results(j).stats_selective.errlb(i)     = difflb;
+                results(j).stats_selective.errub(i)     = diffub;
+                results(j).stats_selective.nfevals(i)   = num_evals;
+            catch err
+                % CR-108: log error and continue — don't lose all progress
+                warning('run_experiment:runFailed', ...
+                    'Problem %d, run %d failed: %s', j, i, err.message);
+            end
         end
     end
 end

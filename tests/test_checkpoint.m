@@ -21,10 +21,11 @@ function test_checkpoint()
     %% Test 1: save_checkpoint creates file
     fprintf('    [1/4] Save checkpoint test...');
 
-    % Create mock FS struct
+    % Create mock FS struct (must have .P, .lb, .ub for deep validation)
     FS_mock = struct();
     FS_mock(1).P = [1 2 3; 4 5 6];
     FS_mock(1).lb = 10;
+    FS_mock(1).ub = 20;
     FS_mock(1).stats.errlb = [1, 2, 3];
 
     % Save checkpoint (production function from src/io/)

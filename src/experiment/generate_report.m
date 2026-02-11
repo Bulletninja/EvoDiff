@@ -18,7 +18,15 @@ function generate_report(results, config)
         % LaTeX table
         tex_file = fullfile(tables_dir, sprintf('taillard_%d.tex', i));
         fid = fopen(tex_file, 'w');
+        % CR-115: check fopen success
+        if fid == -1
+            error('generate_report:openFailed', 'Cannot open %s for writing', tex_file);
+        end
+        % CR-106: ensure file handle is closed on error
+        cleanup = onCleanup(@() fclose(fid));
 
+        % CR-105: dynamic problem dimensions
+        [prob_M, prob_N] = size(results(i).P);
         final_vals = results(i).stats.vals(:, end);
         best_val = min(final_vals);
         mean_val = mean(final_vals);
@@ -29,7 +37,7 @@ function generate_report(results, config)
         fprintf(fid, '\\centering\n');
         fprintf(fid, '\\begin{tabular}{|l|r|}\n');
         fprintf(fid, '\\hline\n');
-        fprintf(fid, '\\multicolumn{2}{|c|}{Taillard Flowshop (20x5) Problem %d} \\\\ \\hline\n', i);
+        fprintf(fid, '\\multicolumn{2}{|c|}{Taillard Flowshop (%dx%d) Problem %d} \\\\ \\hline\n', prob_N, prob_M, i);
         fprintf(fid, 'Lower Bound (LB) & %d \\\\ \\hline\n', results(i).lb);
         fprintf(fid, 'Upper Bound (UB) & %d \\\\ \\hline\n', results(i).ub);
         fprintf(fid, 'Best Found       & %.0f \\\\ \\hline\n', best_val);
@@ -38,7 +46,7 @@ function generate_report(results, config)
         fprintf(fid, 'Mean Error (LB)  & %.1f \\\\ \\hline\n', mean_errlb);
         fprintf(fid, '\\end{tabular}\n');
         fprintf(fid, '\\end{table}\n');
-        fclose(fid);
+        clear cleanup;  % triggers fclose via onCleanup
 
         % Convergence plot
         fig = figure('Visible', 'off');

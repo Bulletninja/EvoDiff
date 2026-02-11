@@ -69,7 +69,10 @@ ui  = zeros(M*N, NP);
 % Shuffling indices
 rot = (0:1:NP-1);
 
-% Selective breeding: mutate only a fraction of population if enabled (CR-009)
+% CR-102: Selective breeding (truncation selection) — only the top fraction
+% breeds. Bottom (mid+1:NP) are never mutated but can be displaced by
+% offspring of the elite via sort. This is intentional: it concentrates
+% search effort on promising regions while maintaining diversity in the tail.
 mid = NP;
 if selective
     mid = ceil(selection_ratio * NP);
@@ -94,13 +97,13 @@ while generation <= max_generations
         ui(:,i) = permutation_mutate(mp1(:,i), mp2(:,i), M, N);
     end
 
-    % Standard DE selection: offspring replaces parent if at least as good
+    % CR-101: Standard DE selection — offspring replaces its actual parent at a1(i)
     for i = 1:mid
         fitness_tmp = f(reshape(ui(:,i), M, N));
         num_evals = num_evals + 1;
         if fitness_tmp <= parent_fitness(i)
-            population(:,i) = ui(:,i);
-            fitness(i) = fitness_tmp;
+            population(:, a1(i)) = ui(:,i);
+            fitness(a1(i)) = fitness_tmp;
             if fitness_tmp < best_fitness
                 best_fitness = fitness_tmp;
                 best_individual = ui(:,i);

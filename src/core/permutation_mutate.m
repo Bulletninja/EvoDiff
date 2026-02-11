@@ -20,6 +20,12 @@ function offspring = permutation_mutate(p, m, M, N)
 
     c = find(any(p ~= m, 1));
 
-    offspring(:, c) = offspring(:, c(randperm(length(c))));
+    % CR-103: fallback when parents have identical column order (converged population)
+    if isempty(c) && N >= 2
+        idx = randperm(N, 2);
+        offspring(:, idx) = offspring(:, fliplr(idx));
+    else
+        offspring(:, c) = offspring(:, c(randperm(length(c))));
+    end
     offspring = offspring(:);
 end
