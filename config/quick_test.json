@@ -1,0 +1,12 @@
+{
+  "population_size": 100,
+  "max_generations": 20,
+  "num_runs": 3,
+  "selective": false,
+  "fitness_function": "evaluate_makespan",
+  "problem_file": "data/taillard_20x5.json",
+  "random_seed": null,
+  "log_interval": 5,
+  "save_results": true,
+  "results_dir": "results/"
+}

@@ -11,3 +11,7 @@ octave-workspace
 
 # macOS
 .DS_Store
+
+# MATLAB generated
+*.mex*
+*.mlappinstall

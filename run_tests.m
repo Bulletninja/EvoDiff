@@ -9,7 +9,6 @@ function results = run_tests(varargin)
 % Returns:
 %   results - Structure with pass/fail counts
 
-    % Parse arguments
     verbose = any(strcmp(varargin, 'verbose'));
     pattern = '';
     for i = 1:length(varargin)-1
@@ -18,46 +17,45 @@ function results = run_tests(varargin)
         end
     end
 
-    % Add paths
-    addpath('tests');
-    addpath('src');
-    addpath('scripts');
-    addpath('data');
+    % Ensure paths are set up
+    setup_paths();
 
     % Find all test files
     test_files = dir('tests/test_*.m');
 
     if ~isempty(pattern)
-        % Filter by pattern
-        mask = contains({test_files.name}, pattern);
+        mask = false(length(test_files), 1);
+        for k = 1:length(test_files)
+            mask(k) = ~isempty(strfind(test_files(k).name, pattern));
+        end
         test_files = test_files(mask);
     end
 
-    % Initialize results
     total_tests = 0;
     passed = 0;
     failed = 0;
     failed_tests = {};
+    total_elapsed = 0;
 
     fprintf('\n========================================\n');
     fprintf('Running EvoDiff Test Suite\n');
     fprintf('========================================\n\n');
 
-    % Run each test file
     for i = 1:length(test_files)
-        test_name = test_files(i).name(1:end-2); % Remove .m
+        test_name = test_files(i).name(1:end-2);
+        fprintf('Running %s...', test_name);
 
-        fprintf('Running %s...\n', test_name);
-
+        tic;
         try
-            % Run the test function
             feval(test_name);
+            elapsed = toc;
             passed = passed + 1;
-            fprintf('  ✓ PASSED\n\n');
+            fprintf('  PASSED (%.2fs)\n\n', elapsed);
         catch ME
+            elapsed = toc;
             failed = failed + 1;
             failed_tests{end+1} = test_name;
-            fprintf('  ✗ FAILED: %s\n', ME.message);
+            fprintf('  FAILED: %s (%.2fs)\n', ME.message, elapsed);
             if verbose
                 fprintf('  Stack trace:\n');
                 for j = 1:length(ME.stack)
@@ -68,14 +66,15 @@ function results = run_tests(varargin)
         end
 
         total_tests = total_tests + 1;
+        total_elapsed = total_elapsed + elapsed;
     end
 
-    % Summary
     fprintf('========================================\n');
     fprintf('Test Results:\n');
     fprintf('  Total:  %d\n', total_tests);
     fprintf('  Passed: %d\n', passed);
     fprintf('  Failed: %d\n', failed);
+    fprintf('  Time:   %.2fs\n', total_elapsed);
 
     if failed > 0
         fprintf('\nFailed tests:\n');
@@ -86,17 +85,16 @@ function results = run_tests(varargin)
 
     fprintf('========================================\n\n');
 
-    % Return results
     results.total = total_tests;
     results.passed = passed;
     results.failed = failed;
     results.failed_tests = failed_tests;
     results.success = (failed == 0);
+    results.elapsed = total_elapsed;
 
-    % Exit code for continuous testing
     if failed > 0
-        fprintf('⚠️  TESTS FAILED\n\n');
+        fprintf('TESTS FAILED\n\n');
     else
-        fprintf('✅ ALL TESTS PASSED\n\n');
+        fprintf('ALL TESTS PASSED\n\n');
     end
 end

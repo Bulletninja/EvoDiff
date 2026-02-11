@@ -4,7 +4,7 @@ function setup_paths()
 % Call this function before running any scripts to ensure
 % all project functions are accessible.
 
-    root = fileparts(mfilename('fullpath'));
+    root = fileparts(fileparts(mfilename('fullpath')));
 
     addpath(fullfile(root, 'src'));
     addpath(fullfile(root, 'src', 'core'));
