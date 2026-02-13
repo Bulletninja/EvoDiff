@@ -194,8 +194,17 @@ function generate_report(results, config)
         end
     end
 
-    % Animated frequency matrix (from problem 1 snapshots)
+    % Population entropy curve (from problem 1 snapshots)
     if exist('pop_snaps', 'var') && ~isempty(pop_snaps)
+        try
+            plot_entropy_curve(pop_snaps, results(1).P, ...
+                fullfile(figures_dir, 'entropy_curve.png'));
+            extra_plots = extra_plots + 1;
+        catch e
+            warning('generate_report:plotFailed', 'Entropy curve skipped: %s', e.message);
+        end
+
+        % Animated frequency matrix
         try
             animate_frequency_matrix(pop_snaps, results(1).P, ...
                 fullfile(figures_dir, 'frequency_animation.gif'));
@@ -205,9 +214,29 @@ function generate_report(results, config)
         end
     end
 
+    % Animated convergence race (problem 1, multi-variant)
+    if num_variants >= 2
+        try
+            animate_convergence_race(results, 1, ...
+                fullfile(figures_dir, 'convergence_race.gif'));
+            extra_plots = extra_plots + 1;
+        catch e
+            warning('generate_report:plotFailed', 'Convergence race skipped: %s', e.message);
+        end
+    end
+
+    % Statistical significance tests
+    if num_variants >= 2
+        try
+            generate_statistical_tables(results, tables_dir);
+        catch e
+            warning('generate_report:statsFailed', 'Statistical tables skipped: %s', e.message);
+        end
+    end
+
     fprintf('Report generated: %d tables, %d convergence plots', num_problems, num_problems);
     if num_variants >= 2
-        fprintf(', 1 comparison table');
+        fprintf(', 1 comparison table, statistical tests');
     end
     if extra_plots > 0
         fprintf(', %d analysis plots', extra_plots);
