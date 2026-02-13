@@ -4,7 +4,7 @@ function generate_report(results, config)
 % Produces per-problem tables, per-problem convergence plots with confidence
 % bands, cross-variant comparison table, and additional visualizations:
 % Gantt charts, heat matrix, performance profiles, violin plots, bump chart,
-% and machine utilization charts.
+% machine utilization charts, ablation waterfall, and frequency animation.
 %
 % Args:
 %   results - Struct array from run_experiment()
@@ -64,16 +64,18 @@ function generate_report(results, config)
             fullfile(figures_dir, sprintf('convergence_%d.png', i)));
 
         % Gantt chart of best solution (first variant)
-        best_vals = results(i).variants(1).stats.vals(:, end);
-        [~, best_run] = min(best_vals);
-        % Reconstruct best schedule by running DE once more with same seed
-        % For now, use problem data directly — Gantt needs the scheduled order
-        % which we don't store. Generate Gantt from a quick optimization.
+        % Run a quick DE — also capture population snapshots for problem 1
         try
             variant = config.variants(1);
-            [best_ind, ~, ~, ~, ~, ~] = de_flowshop(results(i), ...
-                config.population_size, config.max_generations, ...
-                config.fitness_function, false, config.selection_ratio, variant);
+            if i == 1
+                [best_ind, ~, ~, ~, ~, ~, pop_snaps] = de_flowshop(results(i), ...
+                    config.population_size, config.max_generations, ...
+                    config.fitness_function, false, config.selection_ratio, variant);
+            else
+                [best_ind, ~, ~, ~, ~, ~] = de_flowshop(results(i), ...
+                    config.population_size, config.max_generations, ...
+                    config.fitness_function, false, config.selection_ratio, variant);
+            end
             plot_gantt(results(i).P, best_ind, i, ...
                 fullfile(figures_dir, sprintf('gantt_%d.png', i)));
             plot_machine_utilization(results(i).P, best_ind, i, ...
@@ -174,6 +176,27 @@ function generate_report(results, config)
             extra_plots = extra_plots + 1;
         catch e
             warning('generate_report:plotFailed', 'Bump chart skipped: %s', e.message);
+        end
+
+        % Ablation waterfall (useful when variants are cumulative additions)
+        if num_variants >= 3
+            try
+                plot_ablation_waterfall(results, fullfile(figures_dir, 'ablation_waterfall.png'));
+                extra_plots = extra_plots + 1;
+            catch e
+                warning('generate_report:plotFailed', 'Ablation waterfall skipped: %s', e.message);
+            end
+        end
+    end
+
+    % Animated frequency matrix (from problem 1 snapshots)
+    if exist('pop_snaps', 'var') && ~isempty(pop_snaps)
+        try
+            animate_frequency_matrix(pop_snaps, results(1).P, ...
+                fullfile(figures_dir, 'frequency_animation.gif'));
+            extra_plots = extra_plots + 1;
+        catch e
+            warning('generate_report:plotFailed', 'Frequency animation skipped: %s', e.message);
         end
     end
 
