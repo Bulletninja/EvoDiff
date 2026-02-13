@@ -80,6 +80,11 @@ function generate_report(results, config)
                 fullfile(figures_dir, sprintf('gantt_%d.png', i)));
             plot_machine_utilization(results(i).P, best_ind, i, ...
                 fullfile(figures_dir, sprintf('utilization_%d.png', i)));
+            % Animated Gantt for problem 1
+            if i == 1
+                animate_gantt(results(i).P, best_ind, i, ...
+                    fullfile(figures_dir, 'gantt_animation.gif'));
+            end
         catch e
             warning('generate_report:ganttFailed', ...
                 'Gantt/utilization for problem %d skipped: %s', i, e.message);
