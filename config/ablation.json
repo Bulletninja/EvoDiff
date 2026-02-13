@@ -1,0 +1,62 @@
+{
+  "population_size": 100,
+  "max_generations": 20,
+  "num_runs": 5,
+  "selection_ratio": 0.5,
+  "fitness_function": "evaluate_makespan",
+  "problem_file": "data/taillard_20x5.json",
+  "random_seed": null,
+  "results_dir": "results/",
+  "variants": [
+    {
+      "name": "baseline",
+      "selective": false,
+      "selection_ratio": 0.5,
+      "init_method": "random",
+      "crossover": "column_diff",
+      "local_search": false,
+      "local_search_interval": 10,
+      "population_reduction": false
+    },
+    {
+      "name": "+NEH",
+      "selective": false,
+      "selection_ratio": 0.5,
+      "init_method": "neh",
+      "crossover": "column_diff",
+      "local_search": false,
+      "local_search_interval": 10,
+      "population_reduction": false
+    },
+    {
+      "name": "+OX1",
+      "selective": false,
+      "selection_ratio": 0.5,
+      "init_method": "neh",
+      "crossover": "ox1",
+      "local_search": false,
+      "local_search_interval": 10,
+      "population_reduction": false
+    },
+    {
+      "name": "+LS",
+      "selective": false,
+      "selection_ratio": 0.5,
+      "init_method": "neh",
+      "crossover": "ox1",
+      "local_search": true,
+      "local_search_interval": 10,
+      "population_reduction": false
+    },
+    {
+      "name": "+PopRed",
+      "selective": false,
+      "selection_ratio": 0.5,
+      "init_method": "neh",
+      "crossover": "ox1",
+      "local_search": true,
+      "local_search_interval": 10,
+      "population_reduction": true
+    }
+  ]
+}

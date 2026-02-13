@@ -33,7 +33,7 @@ function test_data_loading()
     %% Test 4: Verify all bounds are populated
     fprintf('    [4/4] All problems have bounds...');
     expected_lbs = [1232, 1290, 1073, 1268, 1198, 1180, 1226, 1170, 1206, 1082];
-    expected_ubs = [1278, 1359, 1081, 1293, 1236, 1195, 1239, 1206, 1230, 1108];
+    expected_ubs = [1278, 1359, 1081, 1293, 1235, 1195, 1234, 1206, 1230, 1108];
     for i = 1:10
         assert(problems(i).lb == expected_lbs(i), ...
             sprintf('Problem %d: expected lb=%d, got %d', i, expected_lbs(i), problems(i).lb));

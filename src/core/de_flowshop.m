@@ -1,7 +1,8 @@
-function [best_individual, best_fitness, num_evals, difflb, diffub, best_per_gen] = de_flowshop(Prob, NP, max_generations, f, selective, selection_ratio)
+function [best_individual, best_fitness, num_evals, difflb, diffub, best_per_gen, pop_snapshots] = de_flowshop(Prob, NP, max_generations, f, selective, selection_ratio, variant)
 % DE_FLOWSHOP Differential Evolution for permutation-based flow shop scheduling
 %
-% Minimizes makespan using a permutation-based DE with custom mutation.
+% Minimizes makespan using a permutation-based DE with configurable
+% initialization, crossover, local search, and population reduction.
 %
 % Args:
 %   Prob            - Problem struct with fields: .P (processing times), .lb, .ub
@@ -10,6 +11,14 @@ function [best_individual, best_fitness, num_evals, difflb, diffub, best_per_gen
 %   f               - Fitness function name (string, e.g. 'evaluate_makespan')
 %   selective       - If true, only mutate a fraction of population
 %   selection_ratio - Fraction of population to mutate when selective (default 0.5)
+%   variant         - (Optional) Struct controlling algorithm configuration:
+%                     .init_method: 'random' | 'neh' (default: 'neh')
+%                     .crossover:   'column_diff' | 'ox1' (default: 'ox1')
+%                     .local_search: true | false (default: true)
+%                     .local_search_interval: integer (default: 10)
+%                     .population_reduction: true | false (default: true)
+%                     .selective: overrides 5th arg if present
+%                     .selection_ratio: overrides 6th arg if present
 %
 % Returns:
 %   best_individual - Best solution found (M x N matrix)
@@ -18,10 +27,43 @@ function [best_individual, best_fitness, num_evals, difflb, diffub, best_per_gen
 %   difflb          - Difference from lower bound
 %   diffub          - Difference from upper bound
 %   best_per_gen    - Best fitness at each generation
+%   pop_snapshots   - (Optional) Cell array of population matrices per generation
 
 % CR-009: default selection_ratio to 0.5 for backward compatibility
 if nargin < 6 || isempty(selection_ratio)
     selection_ratio = 0.5;
+end
+
+% Variant defaults (full hybrid)
+init_method = 'neh';
+crossover_op = 'ox1';
+use_local_search = true;
+ls_interval = 10;
+use_pop_reduction = true;
+
+% Override from variant struct if provided
+if nargin >= 7 && isstruct(variant)
+    if isfield(variant, 'selective')
+        selective = variant.selective;
+    end
+    if isfield(variant, 'selection_ratio')
+        selection_ratio = variant.selection_ratio;
+    end
+    if isfield(variant, 'init_method')
+        init_method = variant.init_method;
+    end
+    if isfield(variant, 'crossover')
+        crossover_op = variant.crossover;
+    end
+    if isfield(variant, 'local_search')
+        use_local_search = variant.local_search;
+    end
+    if isfield(variant, 'local_search_interval')
+        ls_interval = variant.local_search_interval;
+    end
+    if isfield(variant, 'population_reduction')
+        use_pop_reduction = variant.population_reduction;
+    end
 end
 
 J = Prob.P;
@@ -34,11 +76,26 @@ assert(M > 0 && N > 0, 'Processing times matrix must not be empty');
 
 best_per_gen = zeros(1, max_generations);
 
+% Optional population snapshots (only when 7th output requested)
+capture_snapshots = (nargout >= 7);
+if capture_snapshots
+    pop_snapshots = cell(max_generations + 1, 1);
+else
+    pop_snapshots = {};
+end
+
 generation = 1;
 
 % Initialize population: each column is a flattened job matrix
 population = zeros(M*N, NP);
-for i = 1:NP
+if strcmp(init_method, 'neh')
+    % ALG-001: seed first member with NEH heuristic
+    population(:,1) = neh_heuristic(J);
+    start_idx = 2;
+else
+    start_idx = 1;
+end
+for i = start_idx:NP
     population(:,i) = random_permutation(J);
 end
 
@@ -63,16 +120,22 @@ population = population(:, sort_idx);
 best_fitness = fitness(1);
 best_individual = population(:, 1);
 
+% Snapshot gen 0 (initial population)
+if capture_snapshots
+    pop_snapshots{1} = population;
+end
+
 % Pre-allocate offspring matrix
 ui  = zeros(M*N, NP);
+
+% ALG-005: linear population reduction parameters
+NP_init = NP;
+NP_min = max(4, round(NP * 0.1));
 
 % Shuffling indices
 rot = (0:1:NP-1);
 
-% CR-102: Selective breeding (truncation selection) — only the top fraction
-% breeds. Bottom (mid+1:NP) are never mutated but can be displaced by
-% offspring of the elite via sort. This is intentional: it concentrates
-% search effort on promising regions while maintaining diversity in the tail.
+% CR-102: Selective breeding (truncation selection)
 mid = NP;
 if selective
     mid = ceil(selection_ratio * NP);
@@ -92,9 +155,13 @@ while generation <= max_generations
     % CR-006: store actual parent fitness for standard DE selection
     parent_fitness = fitness(a1(1:mid));
 
-    % Generate offspring via permutation mutation
+    % Generate offspring via configured crossover operator
     for i = 1:mid
-        ui(:,i) = permutation_mutate(mp1(:,i), mp2(:,i), M, N);
+        if strcmp(crossover_op, 'ox1')
+            ui(:,i) = order_crossover(mp1(:,i), mp2(:,i), M, N);
+        else
+            ui(:,i) = permutation_mutate(mp1(:,i), mp2(:,i), M, N);
+        end
     end
 
     % CR-101: Standard DE selection — offspring replaces its actual parent at a1(i)
@@ -111,11 +178,45 @@ while generation <= max_generations
         end
     end
 
+    % ALG-002: local search on best individual at configured interval
+    if use_local_search && mod(generation, ls_interval) == 0
+        [ls_perm, ls_ms, ls_evals] = local_search_insert(J, best_individual, M, N);
+        num_evals = num_evals + ls_evals;
+        if ls_ms < best_fitness
+            best_fitness = ls_ms;
+            best_individual = ls_perm;
+            population(:, end) = ls_perm;
+            fitness(end) = ls_ms;
+        end
+    end
+
     % Record best AFTER this generation's selection
     best_per_gen(generation) = best_fitness;
 
     [fitness, sort_idx] = sort(fitness);
     population = population(:, sort_idx);
+
+    % Snapshot this generation's population
+    if capture_snapshots
+        pop_snapshots{generation + 1} = population;
+    end
+
+    % ALG-005: linear population reduction
+    if use_pop_reduction
+        NP_new = round(NP_init - generation * (NP_init - NP_min) / max_generations);
+        NP_new = max(NP_new, 4);
+        if NP_new < NP
+            population = population(:, 1:NP_new);
+            fitness = fitness(1:NP_new);
+            NP = NP_new;
+            rot = (0:1:NP-1);
+            if selective
+                mid = ceil(selection_ratio * NP);
+            else
+                mid = NP;
+            end
+        end
+    end
 
     generation = generation + 1;
 end

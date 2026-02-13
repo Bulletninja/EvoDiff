@@ -1,4 +1,4 @@
-function C = evaluate_makespan(O)
+function [C, C_mat] = evaluate_makespan(O)
 % EVALUATE_MAKESPAN Calculate flow shop makespan (total completion time)
 %
 % Uses dynamic programming to compute the completion time matrix.
@@ -8,7 +8,8 @@ function C = evaluate_makespan(O)
 %   O - Processing times matrix (machines x jobs), already in job order
 %
 % Returns:
-%   C - Makespan value (completion time of last job on last machine)
+%   C     - Makespan value (completion time of last job on last machine)
+%   C_mat - Full completion time matrix (machines x jobs), optional
 
     % CR-104: validate input
     assert(~isempty(O) && isnumeric(O) && all(size(O) > 0), ...

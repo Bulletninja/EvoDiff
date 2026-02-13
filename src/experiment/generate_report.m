@@ -1,5 +1,10 @@
 function generate_report(results, config)
-% GENERATE_REPORT Generate LaTeX tables and convergence plots from results
+% GENERATE_REPORT Generate LaTeX tables, convergence plots, and visualizations
+%
+% Produces per-problem tables, per-problem convergence plots with confidence
+% bands, cross-variant comparison table, and additional visualizations:
+% Gantt charts, heat matrix, performance profiles, violin plots, bump chart,
+% and machine utilization charts.
 %
 % Args:
 %   results - Struct array from run_experiment()
@@ -13,25 +18,28 @@ function generate_report(results, config)
     if ~exist(figures_dir, 'dir'), mkdir(figures_dir); end
 
     num_problems = length(results);
+    num_variants = length(results(1).variants);
+    colors = {'b', 'r', 'm', [0 0.5 0], [0.8 0.4 0], [0 0.7 0.7]};
 
+    % Per-problem tables and plots
     for i = 1:num_problems
-        % LaTeX table
+        % LaTeX table (uses first variant for primary stats)
         tex_file = fullfile(tables_dir, sprintf('taillard_%d.tex', i));
         fid = fopen(tex_file, 'w');
-        % CR-115: check fopen success
         if fid == -1
             error('generate_report:openFailed', 'Cannot open %s for writing', tex_file);
         end
-        % CR-106: ensure file handle is closed on error
         cleanup = onCleanup(@() fclose(fid));
 
-        % CR-105: dynamic problem dimensions
         [prob_M, prob_N] = size(results(i).P);
-        final_vals = results(i).stats.vals(:, end);
+        final_vals = results(i).variants(1).stats.vals(:, end);
         best_val = min(final_vals);
         mean_val = mean(final_vals);
         median_val = median(final_vals);
-        mean_errlb = mean(results(i).stats.errlb);
+        std_val = std(final_vals);
+        mean_errlb = mean(results(i).variants(1).stats.errlb);
+        rpd_best = 100 * (best_val - results(i).ub) / results(i).ub;
+        rpd_mean = 100 * (mean_val - results(i).ub) / results(i).ub;
 
         fprintf(fid, '\\begin{table}[h]\n');
         fprintf(fid, '\\centering\n');
@@ -43,27 +51,138 @@ function generate_report(results, config)
         fprintf(fid, 'Best Found       & %.0f \\\\ \\hline\n', best_val);
         fprintf(fid, 'Mean             & %.1f \\\\ \\hline\n', mean_val);
         fprintf(fid, 'Median           & %.1f \\\\ \\hline\n', median_val);
+        fprintf(fid, 'Std Dev          & %.1f \\\\ \\hline\n', std_val);
+        fprintf(fid, 'RPD Best (\\%%)   & %.2f \\\\ \\hline\n', rpd_best);
+        fprintf(fid, 'RPD Mean (\\%%)   & %.2f \\\\ \\hline\n', rpd_mean);
         fprintf(fid, 'Mean Error (LB)  & %.1f \\\\ \\hline\n', mean_errlb);
         fprintf(fid, '\\end{tabular}\n');
         fprintf(fid, '\\end{table}\n');
-        clear cleanup;  % triggers fclose via onCleanup
+        clear cleanup;
 
-        % Convergence plot
-        fig = figure('Visible', 'off');
-        hold on;
-        plot(mean(results(i).stats.vals, 1), 'b-', 'LineWidth', 2);
-        plot(mean(results(i).stats_selective.vals, 1), 'r-', 'LineWidth', 2);
-        yline(results(i).lb, 'g--', 'LineWidth', 1);
-        yline(results(i).ub, 'k--', 'LineWidth', 1);
-        hold off;
-        legend('Normal', 'Selective', 'LB', 'UB');
-        title(sprintf('Problem %d Convergence', i));
-        xlabel('Generation');
-        ylabel('Best Makespan');
-        grid on;
-        saveas(fig, fullfile(figures_dir, sprintf('convergence_%d.png', i)));
-        close(fig);
+        % Convergence plot with confidence bands
+        plot_convergence_bands(results, i, ...
+            fullfile(figures_dir, sprintf('convergence_%d.png', i)));
+
+        % Gantt chart of best solution (first variant)
+        best_vals = results(i).variants(1).stats.vals(:, end);
+        [~, best_run] = min(best_vals);
+        % Reconstruct best schedule by running DE once more with same seed
+        % For now, use problem data directly — Gantt needs the scheduled order
+        % which we don't store. Generate Gantt from a quick optimization.
+        try
+            variant = config.variants(1);
+            [best_ind, ~, ~, ~, ~, ~] = de_flowshop(results(i), ...
+                config.population_size, config.max_generations, ...
+                config.fitness_function, false, config.selection_ratio, variant);
+            plot_gantt(results(i).P, best_ind, i, ...
+                fullfile(figures_dir, sprintf('gantt_%d.png', i)));
+            plot_machine_utilization(results(i).P, best_ind, i, ...
+                fullfile(figures_dir, sprintf('utilization_%d.png', i)));
+        catch e
+            warning('generate_report:ganttFailed', ...
+                'Gantt/utilization for problem %d skipped: %s', i, e.message);
+        end
     end
 
-    fprintf('Report generated: %d tables, %d plots\n', num_problems, num_problems);
+    % Cross-variant comparison table
+    if num_variants >= 2
+        comp_file = fullfile(tables_dir, 'variant_comparison.tex');
+        fid = fopen(comp_file, 'w');
+        if fid == -1
+            error('generate_report:openFailed', 'Cannot open %s for writing', comp_file);
+        end
+        cleanup = onCleanup(@() fclose(fid));
+
+        % Build column spec: Problem | UB | (Best | RPD_mean) per variant
+        col_spec = '|l|r|';
+        for v = 1:num_variants
+            col_spec = [col_spec, 'r|r|'];
+        end
+
+        fprintf(fid, '\\begin{table}[h]\n');
+        fprintf(fid, '\\centering\n');
+        fprintf(fid, '\\begin{tabular}{%s}\n', col_spec);
+        fprintf(fid, '\\hline\n');
+
+        % Header row
+        fprintf(fid, 'Problem & UB');
+        for v = 1:num_variants
+            fprintf(fid, ' & \\multicolumn{2}{c|}{%s}', results(1).variants(v).name);
+        end
+        fprintf(fid, ' \\\\ \\hline\n');
+
+        % Sub-header
+        fprintf(fid, ' & ');
+        for v = 1:num_variants
+            fprintf(fid, ' & Best & RPD(\\%%)');
+        end
+        fprintf(fid, ' \\\\ \\hline\n');
+
+        % Data rows
+        arpd = zeros(num_variants, 1);
+        for i = 1:num_problems
+            fprintf(fid, '%d & %d', i, results(i).ub);
+            for v = 1:num_variants
+                fv = results(i).variants(v).stats.vals(:, end);
+                best_v = min(fv);
+                rpd_v = 100 * (mean(fv) - results(i).ub) / results(i).ub;
+                arpd(v) = arpd(v) + rpd_v;
+                fprintf(fid, ' & %.0f & %.2f', best_v, rpd_v);
+            end
+            fprintf(fid, ' \\\\ \\hline\n');
+        end
+
+        % ARPD summary row
+        arpd = arpd / num_problems;
+        fprintf(fid, '\\multicolumn{2}{|c|}{ARPD}');
+        for v = 1:num_variants
+            fprintf(fid, ' & & %.2f', arpd(v));
+        end
+        fprintf(fid, ' \\\\ \\hline\n');
+
+        fprintf(fid, '\\end{tabular}\n');
+        fprintf(fid, '\\end{table}\n');
+        clear cleanup;
+    end
+
+    % Cross-variant visualizations
+    extra_plots = 0;
+    if num_variants >= 2
+        try
+            plot_heat_matrix(results, fullfile(figures_dir, 'heat_matrix.png'));
+            extra_plots = extra_plots + 1;
+        catch e
+            warning('generate_report:plotFailed', 'Heat matrix skipped: %s', e.message);
+        end
+
+        try
+            plot_performance_profile(results, fullfile(figures_dir, 'performance_profile.png'));
+            extra_plots = extra_plots + 1;
+        catch e
+            warning('generate_report:plotFailed', 'Performance profile skipped: %s', e.message);
+        end
+
+        try
+            plot_violin_comparison(results, fullfile(figures_dir, 'violin_comparison.png'));
+            extra_plots = extra_plots + 1;
+        catch e
+            warning('generate_report:plotFailed', 'Violin plot skipped: %s', e.message);
+        end
+
+        try
+            plot_bump_chart(results, fullfile(figures_dir, 'bump_chart.png'));
+            extra_plots = extra_plots + 1;
+        catch e
+            warning('generate_report:plotFailed', 'Bump chart skipped: %s', e.message);
+        end
+    end
+
+    fprintf('Report generated: %d tables, %d convergence plots', num_problems, num_problems);
+    if num_variants >= 2
+        fprintf(', 1 comparison table');
+    end
+    if extra_plots > 0
+        fprintf(', %d analysis plots', extra_plots);
+    end
+    fprintf('\n');
 end

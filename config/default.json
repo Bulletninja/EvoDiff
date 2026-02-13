@@ -2,12 +2,31 @@
   "population_size": 500,
   "max_generations": 100,
   "num_runs": 30,
-  "selective": false,
   "selection_ratio": 0.5,
   "fitness_function": "evaluate_makespan",
   "problem_file": "data/taillard_20x5.json",
   "random_seed": null,
-  "log_interval": 10,
-  "save_results": true,
-  "results_dir": "results/"
+  "results_dir": "results/",
+  "variants": [
+    {
+      "name": "normal",
+      "selective": false,
+      "selection_ratio": 0.5,
+      "init_method": "neh",
+      "crossover": "ox1",
+      "local_search": true,
+      "local_search_interval": 10,
+      "population_reduction": true
+    },
+    {
+      "name": "selective",
+      "selective": true,
+      "selection_ratio": 0.5,
+      "init_method": "neh",
+      "crossover": "ox1",
+      "local_search": true,
+      "local_search_interval": 10,
+      "population_reduction": true
+    }
+  ]
 }
