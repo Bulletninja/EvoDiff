@@ -133,5 +133,13 @@ function config = load_config(filepath)
             assert(ismember(config.variants(v).crossover, ALLOWED_CROSSOVER), ...
                 sprintf('Variant %d: crossover must be one of: %s', v, strjoin(ALLOWED_CROSSOVER, ', ')));
         end
+        if isfield(config.variants(v), 'jade_p')
+            assert(config.variants(v).jade_p > 0 && config.variants(v).jade_p <= 1, ...
+                sprintf('Variant %d: jade_p must be in (0, 1]', v));
+        end
+        if isfield(config.variants(v), 'jade_c')
+            assert(config.variants(v).jade_c > 0 && config.variants(v).jade_c <= 1, ...
+                sprintf('Variant %d: jade_c must be in (0, 1]', v));
+        end
     end
 end
