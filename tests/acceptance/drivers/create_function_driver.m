@@ -26,15 +26,16 @@ function driver = create_function_driver()
     % Experiment
     driver.run_experiment = @(problems, config) run_experiment(problems, config);
 
-    % Verification helpers
-    driver.verify_equals = @verify_equals_impl;
-    driver.verify_within_bounds = @verify_within_bounds_impl;
-    driver.verify_improves_over_time = @verify_improves_over_time_impl;
-    driver.verify_is_valid_schedule = @verify_is_valid_schedule_impl;
-    driver.verify_less_than = @verify_less_than_impl;
-    driver.verify_has_field = @verify_has_field_impl;
-    driver.verify_has_size = @verify_has_size_impl;
-    driver.verify_is_true = @verify_is_true_impl;
+    % Verification helpers (shared)
+    h = verify_helpers();
+    driver.verify_equals = h.verify_equals;
+    driver.verify_within_bounds = h.verify_within_bounds;
+    driver.verify_improves_over_time = h.verify_improves_over_time;
+    driver.verify_is_valid_schedule = h.verify_is_valid_schedule;
+    driver.verify_less_than = h.verify_less_than;
+    driver.verify_has_field = h.verify_has_field;
+    driver.verify_has_size = h.verify_has_size;
+    driver.verify_is_true = h.verify_is_true;
 end
 
 
@@ -70,67 +71,4 @@ end
 function problem = do_load_taillard_instance(n)
     problems = load_problems('data/taillard_20x5.json');
     problem = problems(n);
-end
-
-function problem = do_small_instance(M, N, seed)
-    % Deterministic problem from seed — does not touch random state
-    values = zeros(M, N);
-    for i = 1:M
-        for j = 1:N
-            values(i, j) = mod(seed * 7 + i * 13 + j * 17, 50) + 1;
-        end
-    end
-    problem.P = values;
-    problem.lb = max(max(sum(values, 2)), max(sum(values, 1)));
-    problem.ub = sum(values(:));
-end
-
-
-%% Verification helpers
-
-function verify_equals_impl(actual, expected)
-    assert(isequal(actual, expected), ...
-        sprintf('Expected %s, got %s', mat2str(expected), mat2str(actual)));
-end
-
-function verify_within_bounds_impl(value, lo, hi)
-    assert(value >= lo && value <= hi, ...
-        sprintf('Value %g not in [%g, %g]', value, lo, hi));
-end
-
-function verify_improves_over_time_impl(values)
-    if length(values) > 1
-        diffs = diff(values);
-        assert(all(diffs <= 0), ...
-            sprintf('Values should be monotonically non-increasing, max increase: %g', max(diffs)));
-    end
-end
-
-function verify_is_valid_schedule_impl(schedule, problem)
-    [M, N] = size(problem.P);
-    assert(isequal(size(schedule), [M, N]), ...
-        sprintf('Schedule should be %dx%d, got %dx%d', M, N, size(schedule, 1), size(schedule, 2)));
-    orig_sorted = sortrows(problem.P')';
-    sched_sorted = sortrows(schedule')';
-    assert(isequal(orig_sorted, sched_sorted), ...
-        'Schedule columns should be a permutation of the original jobs');
-end
-
-function verify_less_than_impl(a, b)
-    assert(a < b, sprintf('Expected %g < %g', a, b));
-end
-
-function verify_has_field_impl(s, field_name)
-    assert(isfield(s, field_name), ...
-        sprintf('Struct missing field: %s', field_name));
-end
-
-function verify_has_size_impl(x, expected_size)
-    assert(isequal(size(x), expected_size), ...
-        sprintf('Expected size [%s], got [%s]', ...
-        num2str(expected_size), num2str(size(x))));
-end
-
-function verify_is_true_impl(condition)
-    assert(condition, 'Expected condition to be true');
 end

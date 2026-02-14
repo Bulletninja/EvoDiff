@@ -1,10 +1,10 @@
 function driver = create_script_driver()
 % CREATE_SCRIPT_DRIVER Layer 3 driver: CLI execution (integration validation)
 %
-% Each action: saves input to temp .mat → writes temp .m script →
-% runs via system('octave ...') → loads output from temp .mat.
+% Each action: saves input to temp .mat -> writes temp .m script ->
+% runs via system('octave ...') -> loads output from temp .mat.
 % Uses SCRIPT_OK sentinel in stdout to verify successful execution.
-% Verification functions are identical to function driver (run locally).
+% Verification functions are shared with function driver via verify_helpers().
 
     this_dir = fileparts(mfilename('fullpath'));
     root = fileparts(fileparts(fileparts(this_dir)));
@@ -17,7 +17,7 @@ function driver = create_script_driver()
     % Problem loading (via CLI)
     driver.load_taillard = @() script_load_taillard(root);
     driver.load_taillard_instance = @(n) script_load_taillard_instance(n, root);
-    driver.small_instance = @do_small_instance;  % local, no production code
+    driver.small_instance = @do_small_instance;
     driver.problem_dimensions = @(problem) size(problem.P);
     driver.problem_bounds = @(problem) struct('lower', problem.lb, 'upper', problem.ub);
 
@@ -29,15 +29,16 @@ function driver = create_script_driver()
     % Experiment (via CLI)
     driver.run_experiment = @(problems, config) script_run_experiment(problems, config, root);
 
-    % Verification helpers (local — identical to function driver)
-    driver.verify_equals = @verify_equals_impl;
-    driver.verify_within_bounds = @verify_within_bounds_impl;
-    driver.verify_improves_over_time = @verify_improves_over_time_impl;
-    driver.verify_is_valid_schedule = @verify_is_valid_schedule_impl;
-    driver.verify_less_than = @verify_less_than_impl;
-    driver.verify_has_field = @verify_has_field_impl;
-    driver.verify_has_size = @verify_has_size_impl;
-    driver.verify_is_true = @verify_is_true_impl;
+    % Verification helpers (shared)
+    h = verify_helpers();
+    driver.verify_equals = h.verify_equals;
+    driver.verify_within_bounds = h.verify_within_bounds;
+    driver.verify_improves_over_time = h.verify_improves_over_time;
+    driver.verify_is_valid_schedule = h.verify_is_valid_schedule;
+    driver.verify_less_than = h.verify_less_than;
+    driver.verify_has_field = h.verify_has_field;
+    driver.verify_has_size = h.verify_has_size;
+    driver.verify_is_true = h.verify_is_true;
 end
 
 
@@ -225,69 +226,4 @@ function exp_results = script_run_experiment(problems, config, root)
     loaded = load(output_file);
     exp_results = loaded.exp_results;
     cleanup_temp_files(input_file, output_file, script_file);
-end
-
-
-%% Local helpers (no production code dependency)
-
-function problem = do_small_instance(M, N, seed)
-    values = zeros(M, N);
-    for i = 1:M
-        for j = 1:N
-            values(i, j) = mod(seed * 7 + i * 13 + j * 17, 50) + 1;
-        end
-    end
-    problem.P = values;
-    problem.lb = max(max(sum(values, 2)), max(sum(values, 1)));
-    problem.ub = sum(values(:));
-end
-
-
-%% Verification helpers (local, identical to function driver)
-
-function verify_equals_impl(actual, expected)
-    assert(isequal(actual, expected), ...
-        sprintf('Expected %s, got %s', mat2str(expected), mat2str(actual)));
-end
-
-function verify_within_bounds_impl(value, lo, hi)
-    assert(value >= lo && value <= hi, ...
-        sprintf('Value %g not in [%g, %g]', value, lo, hi));
-end
-
-function verify_improves_over_time_impl(values)
-    if length(values) > 1
-        diffs = diff(values);
-        assert(all(diffs <= 0), ...
-            sprintf('Values should be monotonically non-increasing, max increase: %g', max(diffs)));
-    end
-end
-
-function verify_is_valid_schedule_impl(schedule, problem)
-    [M, N] = size(problem.P);
-    assert(isequal(size(schedule), [M, N]), ...
-        sprintf('Schedule should be %dx%d, got %dx%d', M, N, size(schedule, 1), size(schedule, 2)));
-    orig_sorted = sortrows(problem.P')';
-    sched_sorted = sortrows(schedule')';
-    assert(isequal(orig_sorted, sched_sorted), ...
-        'Schedule columns should be a permutation of the original jobs');
-end
-
-function verify_less_than_impl(a, b)
-    assert(a < b, sprintf('Expected %g < %g', a, b));
-end
-
-function verify_has_field_impl(s, field_name)
-    assert(isfield(s, field_name), ...
-        sprintf('Struct missing field: %s', field_name));
-end
-
-function verify_has_size_impl(x, expected_size)
-    assert(isequal(size(x), expected_size), ...
-        sprintf('Expected size [%s], got [%s]', ...
-        num2str(expected_size), num2str(size(x))));
-end
-
-function verify_is_true_impl(condition)
-    assert(condition, 'Expected condition to be true');
 end

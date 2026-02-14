@@ -16,6 +16,7 @@ function setup_paths()
     addpath(fullfile(root, 'tests', 'acceptance', 'specs'));
     addpath(fullfile(root, 'tests', 'acceptance', 'dsl'));
     addpath(fullfile(root, 'tests', 'acceptance', 'drivers'));
+    addpath(fullfile(root, 'tests', 'acceptance', 'helpers'));
     % data/ and config/ intentionally excluded from path (SEC-003: prevents
     % function shadowing via .m files placed in data directories)
 
